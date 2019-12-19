@@ -1,6 +1,7 @@
 #pragma once
 #include "arm.h"
 #include "wind_hw.h"
+#include <unordered_set>
 
 class Emu {
     uint8_t ROM[0x1000000];
@@ -27,6 +28,8 @@ class Emu {
     Timer tc1, tc2;
     UART uart1, uart2;
     bool asleep = false;
+
+    std::unordered_set<uint32_t> _breakpoints;
 
     struct ARMCore cpu;
 
@@ -84,4 +87,5 @@ public:
     void executeUntil(int64_t cycles);
     int64_t currentCycles() const { return cpu.cycles; }
     uint32_t getGPR(int index) const { return cpu.gprs[index]; }
+    std::unordered_set<uint32_t> &breakpoints() { return _breakpoints; }
 };

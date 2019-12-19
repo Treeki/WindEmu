@@ -4,7 +4,7 @@
 #include <time.h>
 
 
-//#define INCLUDE_BANK1
+#define INCLUDE_BANK1
 
 Emu::Emu() {
 }
@@ -184,7 +184,7 @@ void Emu::writeReg32(uint32_t reg, uint32_t value) {
 
 uint32_t Emu::readPhys8(uint32_t physAddress) {
     uint32_t result = 0xFF;
-    uint8_t region = (physAddress >> 24) & 0xF8;
+    uint8_t region = (physAddress >> 24) & 0xF1;
 	if (region == 0)
 		result = ROM[physAddress & 0xFFFFFF];
     else if (region == 0x80 && physAddress <= 0x80000FFF)
@@ -207,7 +207,7 @@ uint32_t Emu::readPhys8(uint32_t physAddress) {
 }
 uint32_t Emu::readPhys16(uint32_t physAddress) {
 	uint32_t result = 0xFFFFFFFF;
-    uint8_t region = (physAddress >> 24) & 0xF8;
+    uint8_t region = (physAddress >> 24) & 0xF1;
 	if (region == 0)
 		LOAD_16LE(result, physAddress & 0xFFFFFF, ROM);
     else if (region == 0xC0)
@@ -228,7 +228,7 @@ uint32_t Emu::readPhys16(uint32_t physAddress) {
 }
 uint32_t Emu::readPhys32(uint32_t physAddress) {
 	uint32_t result = 0xFFFFFFFF;
-    uint8_t region = (physAddress >> 24) & 0xF8;
+    uint8_t region = (physAddress >> 24) & 0xF1;
 	if (region == 0)
 		LOAD_32LE(result, physAddress & 0xFFFFFF, ROM);
     else if (region == 0x80 && physAddress <= 0x80000FFF)
@@ -251,7 +251,7 @@ uint32_t Emu::readPhys32(uint32_t physAddress) {
 }
 
 void Emu::writePhys8(uint32_t physAddress, uint8_t value) {
-    uint8_t region = (physAddress >> 24) & 0xF8;
+    uint8_t region = (physAddress >> 24) & 0xF1;
     if (region == 0xC0)
         MemoryBlockC0[physAddress & MemoryBlockMask] = (uint8_t)value;
 #ifdef INCLUDE_BANK1
@@ -270,7 +270,7 @@ void Emu::writePhys8(uint32_t physAddress, uint8_t value) {
 //		printf("<%08x> unmapped write8 addr p:%08x :: %02x\n", cpu.gprs[ARM_PC] - 4, physAddress, value);
 }
 void Emu::writePhys16(uint32_t physAddress, uint16_t value) {
-    uint8_t region = (physAddress >> 24) & 0xF8;
+    uint8_t region = (physAddress >> 24) & 0xF1;
     if (region == 0xC0)
         STORE_16LE(value, physAddress & MemoryBlockMask, MemoryBlockC0);
 #ifdef INCLUDE_BANK1
@@ -287,7 +287,7 @@ void Emu::writePhys16(uint32_t physAddress, uint16_t value) {
 //		printf("<%08x> unmapped write16 addr p:%08x :: %04x\n", cpu.gprs[ARM_PC] - 4, physAddress, value);
 }
 void Emu::writePhys32(uint32_t physAddress, uint32_t value) {
-    uint8_t region = (physAddress >> 24) & 0xF8;
+    uint8_t region = (physAddress >> 24) & 0xF1;
     if (region == 0xC0)
         STORE_32LE(value, physAddress & MemoryBlockMask, MemoryBlockC0);
 #ifdef INCLUDE_BANK1
@@ -556,6 +556,10 @@ void Emu::executeUntil(int64_t cycles) {
             uint32_t phys_pc = virtToPhys(pc);
             debugPC(phys_pc);
             ARMRun(&cpu);
+
+            uint32_t new_pc = cpu.gprs[ARM_PC] - 4;
+            if (_breakpoints.find(new_pc) != _breakpoints.end())
+                return;
         }
     }
 }

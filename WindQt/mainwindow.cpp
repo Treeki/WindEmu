@@ -31,7 +31,7 @@ void MainWindow::updateScreen()
     ui->cycleCounter->setText(QString("Cycles: %1").arg(emu->currentCycles()));
 
     ui->regsLabel->setText(
-                QString("R0: %1 / R1: %2 / R2: %3 / R3: %4 / R4: %5 / R5: %6 / R6: %7 / R7: %8 / R8: %9\nR9: %10 / R10:%11 / R11:%12 / R12:%13 / SP: %14 / LR: %15 / PC: %16")
+                QString("R0: %1 / R1: %2 / R2: %3 / R3: %4 / R4: %5 / R5: %6 / R6: %7 / R7: %8\nR8: %9 / R9: %10 / R10:%11 / R11:%12 / R12:%13 / SP: %14 / LR: %15 / PC: %16")
                 .arg(emu->getGPR(0), 8, 16)
                 .arg(emu->getGPR(1), 8, 16)
                 .arg(emu->getGPR(2), 8, 16)
@@ -242,4 +242,26 @@ void MainWindow::execTimer()
 {
     emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED / 64));
     updateScreen();
+}
+
+void MainWindow::on_addBreakButton_clicked()
+{
+    uint32_t addr = ui->breakpointAddress->text().toUInt(nullptr, 16);
+    emu->breakpoints().insert(addr);
+    updateBreakpointsList();
+}
+
+void MainWindow::on_removeBreakButton_clicked()
+{
+    uint32_t addr = ui->breakpointAddress->text().toUInt(nullptr, 16);
+    emu->breakpoints().erase(addr);
+    updateBreakpointsList();
+}
+
+void MainWindow::updateBreakpointsList()
+{
+    ui->breakpointsList->clear();
+    for (uint32_t addr : emu->breakpoints()) {
+        ui->breakpointsList->addItem(QString::number(addr, 16));
+    }
 }

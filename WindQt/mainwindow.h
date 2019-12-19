@@ -24,12 +24,16 @@ private slots:
     void on_stepInsnButton_clicked();
     void on_stepTickButton_clicked();
 
+    void on_addBreakButton_clicked();
+
+    void on_removeBreakButton_clicked();
+
 private:
     Ui::MainWindow *ui;
     Emu *emu;
     QTimer *timer;
     void updateScreen();
-
+    void updateBreakpointsList();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
