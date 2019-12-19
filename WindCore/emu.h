@@ -4,10 +4,11 @@
 
 class Emu {
     uint8_t ROM[0x1000000];
-    uint8_t MemoryBlockC[0x800000];
-    enum { MemoryBlockCMask = 0x7FFFFF };
-    uint8_t MemoryBlockD[0x800000];
-    enum { MemoryBlockDMask = 0x7FFFFF };
+    uint8_t MemoryBlockC0[0x800000];
+    uint8_t MemoryBlockC1[0x800000];
+    uint8_t MemoryBlockD0[0x800000];
+    uint8_t MemoryBlockD1[0x800000];
+    enum { MemoryBlockMask = 0x7FFFFF };
 
     uint32_t controlReg;
     uint32_t translationTableBase;
