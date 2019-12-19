@@ -3,6 +3,7 @@
 #include "../WindCore/wind.h"
 #include <QTimer>
 #include <QKeyEvent>
+#include "../WindCore/decoder.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -14,8 +15,10 @@ MainWindow::MainWindow(QWidget *parent) :
     emu->loadROM("/Users/ash/src/psion/Sys$rom.bin");
 
     timer = new QTimer(this);
-    timer->start(1000/64);
+    timer->setInterval(1000/64);
     connect(timer, SIGNAL(timeout()), SLOT(execTimer()));
+
+    updateScreen();
 }
 
 MainWindow::~MainWindow()
@@ -23,22 +26,54 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::execTimer()
-{
-    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED / 64));
-    ui->cycleCounter->setText(QString("Cycles: %1").arg(emu->currentCycles()));
-    updateScreen();
-}
-
-void MainWindow::on_stepButton_clicked()
-{
-    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED * 2));
-    ui->cycleCounter->setText(QString("Cycles: %1").arg(emu->currentCycles()));
-    updateScreen();
-}
-
 void MainWindow::updateScreen()
 {
+    ui->cycleCounter->setText(QString("Cycles: %1").arg(emu->currentCycles()));
+
+    ui->regsLabel->setText(
+                QString("R0: %1 / R1: %2 / R2: %3 / R3: %4 / R4: %5 / R5: %6 / R6: %7 / R7: %8 / R8: %9\nR9: %10 / R10:%11 / R11:%12 / R12:%13 / SP: %14 / LR: %15 / PC: %16")
+                .arg(emu->getGPR(0), 8, 16)
+                .arg(emu->getGPR(1), 8, 16)
+                .arg(emu->getGPR(2), 8, 16)
+                .arg(emu->getGPR(3), 8, 16)
+                .arg(emu->getGPR(4), 8, 16)
+                .arg(emu->getGPR(5), 8, 16)
+                .arg(emu->getGPR(6), 8, 16)
+                .arg(emu->getGPR(7), 8, 16)
+                .arg(emu->getGPR(8), 8, 16)
+                .arg(emu->getGPR(9), 8, 16)
+                .arg(emu->getGPR(10), 8, 16)
+                .arg(emu->getGPR(11), 8, 16)
+                .arg(emu->getGPR(12), 8, 16)
+                .arg(emu->getGPR(13), 8, 16)
+                .arg(emu->getGPR(14), 8, 16)
+                .arg(emu->getGPR(15), 8, 16)
+                );
+
+    // show a crude disassembly
+    const int context = 8 * 4;
+    uint32_t pc = emu->getGPR(15) - 4;
+    uint32_t minCode = pc - context;
+    if (minCode >= (UINT32_MAX - context))
+        minCode = 0;
+    uint32_t maxCode = pc + context;
+    if (maxCode < context)
+        maxCode = UINT32_MAX;
+
+    QStringList codeLines;
+    for (uint32_t addr = minCode; addr >= minCode && addr <= maxCode; addr += 4) {
+        const char *prefix = (addr == pc) ? "==>" : "   ";
+        struct ARMInstructionInfo info;
+        char buffer[512];
+
+        uint32_t opcode = emu->readVirt32(addr);
+        ARMDecodeARM(opcode, &info);
+        ARMDisassemble(&info, addr, buffer, sizeof(buffer));
+        codeLines.append(QString("%1 %2 | %3 | %4").arg(prefix).arg(addr, 8, 16).arg(opcode, 8, 16).arg(buffer));
+    }
+    ui->codeLabel->setText(codeLines.join('\n'));
+
+    // now, the actual screen
     const uint8_t *lcdBuf = emu->getLCDBuffer();
     if (lcdBuf) {
         QImage img(640, 240, QImage::Format_Grayscale8);
@@ -168,4 +203,43 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     int k = resolveKey(event->key());
     if (k >= 0)
         emu->keyboardKeys[k] = false;
+}
+
+
+
+
+void MainWindow::on_startButton_clicked()
+{
+    timer->start();
+    ui->startButton->setEnabled(false);
+    ui->stopButton->setEnabled(true);
+    ui->stepInsnButton->setEnabled(false);
+    ui->stepTickButton->setEnabled(false);
+}
+
+void MainWindow::on_stopButton_clicked()
+{
+    timer->stop();
+    ui->startButton->setEnabled(true);
+    ui->stopButton->setEnabled(false);
+    ui->stepInsnButton->setEnabled(true);
+    ui->stepTickButton->setEnabled(true);
+}
+
+void MainWindow::on_stepTickButton_clicked()
+{
+    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED * 2));
+    updateScreen();
+}
+
+void MainWindow::on_stepInsnButton_clicked()
+{
+    emu->executeUntil(emu->currentCycles() + 1);
+    updateScreen();
+}
+
+void MainWindow::execTimer()
+{
+    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED / 64));
+    updateScreen();
 }

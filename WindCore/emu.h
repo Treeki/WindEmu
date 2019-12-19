@@ -82,4 +82,5 @@ public:
     void dumpRAM(const char *path);
     void executeUntil(int64_t cycles);
     int64_t currentCycles() const { return cpu.cycles; }
+    uint32_t getGPR(int index) const { return cpu.gprs[index]; }
 };

@@ -17,8 +17,12 @@ public:
     ~MainWindow() override;
 
 private slots:
-    void on_stepButton_clicked();
     void execTimer();
+
+    void on_startButton_clicked();
+    void on_stopButton_clicked();
+    void on_stepInsnButton_clicked();
+    void on_stepTickButton_clicked();
 
 private:
     Ui::MainWindow *ui;

@@ -6,7 +6,6 @@
 
 
 Emu::Emu() {
-	configure();
 }
 
 
@@ -464,7 +463,10 @@ void Emu::loadROM(const char *path) {
 }
 
 void Emu::executeUntil(int64_t cycles) {
-    while (!asleep && cpu.cycles <= cycles) {
+    if (!configured)
+        configure();
+
+    while (!asleep && cpu.cycles < cycles) {
         if (cpu.cycles >= nextTickAt) {
             // increment RTCDIV
             if ((pwrsr & 0x3F) == 0x3F) {

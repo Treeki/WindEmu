@@ -15,6 +15,75 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
+    <item row="1" column="4">
+     <widget class="QPushButton" name="stopButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Stop</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="stepInsnButton">
+      <property name="text">
+       <string>Step (Insn)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0" colspan="5">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Memory</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>Code</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QLabel" name="codeLabel">
+          <property name="font">
+           <font>
+            <family>Courier New</family>
+           </font>
+          </property>
+          <property name="text">
+           <string>TextLabel</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="0" column="0" colspan="6">
+     <widget class="QLabel" name="screen">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="3">
+     <widget class="QPushButton" name="startButton">
+      <property name="text">
+       <string>Start</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QLabel" name="cycleCounter">
+      <property name="text">
+       <string>Cycles</string>
+      </property>
+     </widget>
+    </item>
     <item row="1" column="2">
      <spacer name="horizontalSpacer">
       <property name="orientation">
@@ -28,22 +97,20 @@
       </property>
      </spacer>
     </item>
-    <item row="1" column="3">
-     <widget class="QPushButton" name="stepButton">
+    <item row="2" column="4">
+     <widget class="QPushButton" name="stepTickButton">
       <property name="text">
-       <string>Step</string>
+       <string>Step (Tick)</string>
       </property>
      </widget>
     </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="cycleCounter">
-      <property name="text">
-       <string>Cycles</string>
+    <item row="3" column="0" colspan="5">
+     <widget class="QLabel" name="regsLabel">
+      <property name="font">
+       <font>
+        <family>Courier New</family>
+       </font>
       </property>
-     </widget>
-    </item>
-    <item row="0" column="0" colspan="4">
-     <widget class="QLabel" name="screen">
       <property name="text">
        <string/>
       </property>
