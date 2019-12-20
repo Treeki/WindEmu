@@ -182,6 +182,19 @@ void Emu::writeReg32(uint32_t reg, uint32_t value) {
 	}
 }
 
+bool Emu::isPhysAddressValid(uint32_t physAddress) const {
+    uint8_t region = (physAddress >> 24) & 0xF1;
+    switch (region) {
+    case 0: return true;
+    case 0x80: return (physAddress <= 0x80000FFF);
+    case 0xC0: return true;
+    case 0xC1: return true;
+    case 0xD0: return true;
+    case 0xD1: return true;
+    default: return false;
+    }
+}
+
 uint32_t Emu::readPhys8(uint32_t physAddress) {
     uint32_t result = 0xFF;
     uint8_t region = (physAddress >> 24) & 0xF1;

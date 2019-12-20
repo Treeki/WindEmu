@@ -28,12 +28,28 @@ private slots:
 
     void on_removeBreakButton_clicked();
 
+    void on_memoryViewAddress_textEdited(const QString &arg1);
+    void on_memoryAdd1_clicked();
+    void on_memoryAdd4_clicked();
+    void on_memoryAdd10_clicked();
+    void on_memoryAdd100_clicked();
+    void on_memorySub1_clicked();
+    void on_memorySub4_clicked();
+    void on_memorySub10_clicked();
+    void on_memorySub100_clicked();
+
+    void on_writeByteButton_clicked();
+
+    void on_writeDwordButton_clicked();
+
 private:
     Ui::MainWindow *ui;
     Emu *emu;
     QTimer *timer;
     void updateScreen();
     void updateBreakpointsList();
+    void updateMemory();
+    void adjustMemoryAddress(int offset);
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;

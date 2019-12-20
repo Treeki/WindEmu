@@ -45,6 +45,8 @@ class Emu {
     void writeReg32(uint32_t reg, uint32_t value);
 
 public:
+    bool isPhysAddressValid(uint32_t physAddress) const;
+
     uint32_t readPhys8(uint32_t physAddress);
     uint32_t readPhys16(uint32_t physAddress);
     uint32_t readPhys32(uint32_t physAddress);
