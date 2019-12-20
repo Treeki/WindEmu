@@ -273,6 +273,8 @@ void MainWindow::updateMemory()
     uint32_t virtBase = ui->memoryViewAddress->text().toUInt(nullptr, 16) & ~0xFF;
     uint32_t physBase = emu->virtToPhys(virtBase);
     bool ok = (physBase != 0xFFFFFFFF) && emu->isPhysAddressValid(physBase);
+    if (ok && (virtBase != physBase))
+        ui->physicalAddressLabel->setText(QStringLiteral("Physical: %1").arg(physBase, 8, 16, QLatin1Char('0')));
 
     uint8_t block[0x100];
     if (ok) {

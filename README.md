@@ -41,6 +41,8 @@ Resources
 
 Special thanks to [PsiLinux/OpenPsion](http://linux-7110.sourceforge.net/index.shtml) for providing an avenue to learn about the hardware definitions (registers, etc).
 
+More information on the hardware is available in the NetBSD port: http://cvsweb.netbsd.org/bsdweb.cgi/src/sys/arch/epoc32/?only_with_tag=MAIN
+
 The EPOC C++ SDK is available here: https://web.archive.org/web/20071010101808/http://www.psionteklogix.com/teknet/pdk/netpad-pdk/epoc_downloads.htm
 
 The ARM variant used in the 5mx is documented here: http://infocenter.arm.com/help/topic/com.arm.doc.ddi0033d/DDI0033D_710a_prelim_ds.pdf

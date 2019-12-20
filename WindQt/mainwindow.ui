@@ -133,6 +133,19 @@
           </property>
          </widget>
         </item>
+        <item row="3" column="5">
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
         <item row="1" column="5">
          <widget class="QToolButton" name="memorySub4">
           <property name="text">
@@ -154,10 +167,29 @@
           </property>
          </widget>
         </item>
+        <item row="4" column="0" colspan="13">
+         <widget class="QLabel" name="memoryViewLabel">
+          <property name="font">
+           <font>
+            <family>Courier New</family>
+           </font>
+          </property>
+          <property name="text">
+           <string>TextLabel</string>
+          </property>
+         </widget>
+        </item>
         <item row="2" column="4">
          <widget class="QToolButton" name="memoryAdd1">
           <property name="text">
            <string>+1</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="10">
+         <widget class="QLabel" name="physicalAddressLabel">
+          <property name="text">
+           <string>Physical: XXXXXXXX</string>
           </property>
          </widget>
         </item>
@@ -168,33 +200,7 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="9">
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="3" column="5">
-         <spacer name="verticalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="0" column="10" rowspan="3">
+        <item row="0" column="12" rowspan="3">
          <widget class="QGroupBox" name="groupBox_2">
           <property name="title">
            <string>Write</string>
@@ -220,17 +226,18 @@
           </layout>
          </widget>
         </item>
-        <item row="4" column="0" colspan="11">
-         <widget class="QLabel" name="memoryViewLabel">
-          <property name="font">
-           <font>
-            <family>Courier New</family>
-           </font>
+        <item row="0" column="11">
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
-          <property name="text">
-           <string>TextLabel</string>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
           </property>
-         </widget>
+         </spacer>
         </item>
        </layout>
       </widget>
