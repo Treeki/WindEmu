@@ -26,7 +26,6 @@ Known issues:
 - State is not saved (just like a real Psion :p)
 - LCD controller is almost entirely unimplemented aside from the very basics to display the framebuffer
 - EPOC misbehaves massively with memory banks larger than 0x800000 (may be an OS design flaw? need to confirm)
-- 4bpp display mode does not decode correctly
 
 Copyright
 ---------

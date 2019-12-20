@@ -93,16 +93,11 @@ void MainWindow::updateScreen()
             for (int x = 0; x < img.width(); x++) {
                 uint8_t byte = lcdBuf[lineOffs + (x / ppb)];
                 int shift = (x & (ppb - 1)) * bpp;
-                int mask = (bpp << 1) - 1;
+                int mask = (1 << bpp) - 1;
                 int palIdx = (byte >> shift) & mask;
                 int palValue = palette[palIdx];
 
-                if (bpp <= 1)
-                    palValue |= (palValue << 1);
-                if (bpp <= 2)
-                    palValue |= (palValue << 2);
-                if (bpp <= 4)
-                    palValue |= (palValue << 4);
+                palValue |= (palValue << 4);
                 scanline[x] = palValue ^ 0xFF;
             }
         }
