@@ -1,6 +1,7 @@
 #pragma once
 #include "arm.h"
 #include "wind_hw.h"
+#include "etna.h"
 #include <unordered_set>
 
 class Emu {
@@ -27,6 +28,7 @@ class Emu {
     int64_t nextTickAt = 0;
     Timer tc1, tc2;
     UART uart1, uart2;
+    Etna etna;
     bool asleep = false;
 
     std::unordered_set<uint32_t> _breakpoints;

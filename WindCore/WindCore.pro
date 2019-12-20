@@ -22,6 +22,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    etna.cpp \
     wind.cpp \
     isa-arm.c \
     decoder.c \
@@ -30,6 +31,7 @@ SOURCES += \
     emu.cpp
 
 HEADERS += \
+    etna.h \
     wind_hw.h \
     wind.h \
     macros.h \

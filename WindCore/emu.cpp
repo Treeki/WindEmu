@@ -108,7 +108,13 @@ void Emu::writeReg8(uint32_t reg, uint8_t value) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFF00FFFF;
 		portValues |= (uint32_t)value << 16;
-		diffPorts(oldPorts, portValues);
+        if ((portValues & 0x10000) && !(oldPorts & 0x10000))
+            etna.setPromBit0High();
+        else if (!(portValues & 0x10000) && (oldPorts & 0x10000))
+            etna.setPromBit0Low();
+        if ((portValues & 0x20000) && !(oldPorts & 0x20000))
+            etna.setPromBit1High();
+        diffPorts(oldPorts, portValues);
 	} else if (reg == PCDR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFFFF00FF;
@@ -200,6 +206,8 @@ uint32_t Emu::readPhys8(uint32_t physAddress) {
     uint8_t region = (physAddress >> 24) & 0xF1;
 	if (region == 0)
 		result = ROM[physAddress & 0xFFFFFF];
+    else if (region == 0x20 && physAddress <= 0x20000FFF)
+        result = etna.readReg8(physAddress & 0xFFF);
     else if (region == 0x80 && physAddress <= 0x80000FFF)
 		result = readReg8(physAddress & 0xFFF);
     else if (region == 0xC0)
@@ -244,6 +252,8 @@ uint32_t Emu::readPhys32(uint32_t physAddress) {
     uint8_t region = (physAddress >> 24) & 0xF1;
 	if (region == 0)
 		LOAD_32LE(result, physAddress & 0xFFFFFF, ROM);
+    else if (region == 0x20 && physAddress <= 0x20000FFF)
+        result = etna.readReg32(physAddress & 0xFFF);
     else if (region == 0x80 && physAddress <= 0x80000FFF)
 		result = readReg32(physAddress & 0xFFF);
     else if (region == 0xC0)
@@ -277,8 +287,10 @@ void Emu::writePhys8(uint32_t physAddress, uint8_t value) {
     else if (region == 0xD1)
         MemoryBlockD1[physAddress & MemoryBlockMask] = (uint8_t)value;
 #endif
+    else if (region == 0x20 && physAddress <= 0x20000FFF)
+        etna.writeReg8(physAddress & 0xFFF, value);
     else if (region == 0x80 && physAddress <= 0x80000FFF)
-		writeReg8(physAddress & 0xFFF, value);
+        writeReg8(physAddress & 0xFFF, value);
 //	else
 //		printf("<%08x> unmapped write8 addr p:%08x :: %02x\n", cpu.gprs[ARM_PC] - 4, physAddress, value);
 }
@@ -313,6 +325,8 @@ void Emu::writePhys32(uint32_t physAddress, uint32_t value) {
     else if (region == 0xD1)
         STORE_32LE(value, physAddress & MemoryBlockMask, MemoryBlockD1);
 #endif
+    else if (region == 0x20 && physAddress <= 0x20000FFF)
+        etna.writeReg32(physAddress & 0xFFF, value);
     else if (region == 0x80 && physAddress <= 0x80000FFF)
 		writeReg32(physAddress & 0xFFF, value);
 //	else

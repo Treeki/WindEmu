@@ -18,8 +18,9 @@ void diffPorts(uint32_t oldval, uint32_t newval) {
 	if (changes & 0x1000) printf("PRT lcd backlight: %d\n", newval&0x1000);
 	if (changes & 0x2000) printf("PRT enable uart0: %d\n", newval&0x2000);
 	if (changes & 0x4000) printf("PRT dictaphone: %d\n", newval&0x4000);
-	if (changes & 0x10000) printf("PRT EECS: %d\n", newval&0x10000);
-	if (changes & 0x20000) printf("PRT EECLK: %d\n", newval&0x20000);
+// PROM read process makes this super spammy in stdout
+//	if (changes & 0x10000) printf("PRT EECS: %d\n", newval&0x10000);
+//	if (changes & 0x20000) printf("PRT EECLK: %d\n", newval&0x20000);
 	if (changes & 0x40000) printf("PRT contrast0: %d\n", newval&0x40000);
 	if (changes & 0x80000) printf("PRT contrast1: %d\n", newval&0x80000);
 	if (changes & 0x100000) printf("PRT contrast2: %d\n", newval&0x100000);

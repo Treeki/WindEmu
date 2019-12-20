@@ -1,5 +1,5 @@
-#include <stdint.h>
 #pragma once
+#include <stdint.h>
 
 const int CLOCK_SPEED = 0x9000*1000;
 const int TICK_INTERVAL = CLOCK_SPEED / 64;

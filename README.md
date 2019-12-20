@@ -12,7 +12,7 @@ Hardware features:
 - ❌ Touch panel: not implemented
 - ❌ Audio: not implemented
 - ❌ Serial/UART support: stubbed out
-- ❌ ETNA (CompactFlash): not implemented
+- ❌ ETNA (PCMCIA/CompactFlash): mostly stubbed out
 - ✅ RTC: implemented
 - ❌ RTC alarm: not implemented
 - ❌ Standby mode: not implemented
