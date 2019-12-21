@@ -1,4 +1,5 @@
 #include "etna.h"
+#include "emu.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -44,7 +45,9 @@ static const char *nameReg(uint32_t reg) {
 }
 
 
-Etna::Etna() {
+Etna::Etna(Emu *owner) {
+    this->owner = owner;
+
     for (int i = 0; i < 0x80; i++)
         prom[i] = 0;
 
@@ -77,9 +80,10 @@ Etna::Etna() {
 uint32_t Etna::readReg8(uint32_t reg)
 {
     if (!promReadActive)
-        printf("ETNA readReg8: reg=%s\n", nameReg(reg));
+        printf("ETNA readReg8: reg=%s @ pc=%08x,lr=%08x\n", nameReg(reg), owner->getGPR(15) - 4, owner->getGPR(14));
     switch (reg) {
-    case regSktVarA0: return 0; // will store some status flags
+    case regIntClear: return 0;
+    case regSktVarA0: return 1; // will store some status flags
     case regSktVarA1: return 0; // will store some more status flags
     case regWake1: return wake1;
     case regWake2: return wake2;
@@ -97,8 +101,9 @@ uint32_t Etna::readReg32(uint32_t reg)
 void Etna::writeReg8(uint32_t reg, uint8_t value)
 {
     if (!promReadActive)
-        printf("ETNA writeReg8: reg=%s value=%02x\n", nameReg(reg), value);
+        printf("ETNA writeReg8: reg=%s value=%02x @ pc=%08x,lr=%08x\n", nameReg(reg), value, owner->getGPR(15) - 4, owner->getGPR(14));
     switch (reg) {
+    case regIntClear: pendingInterrupts &= ~value; break;
     case regWake1: wake1 = value; break;
     case regWake2: wake2 = value; break;
     }

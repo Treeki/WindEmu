@@ -1,5 +1,6 @@
 #pragma once
 #include "wind.h"
+#include "arm.h"
 #include <stdio.h>
 
 struct Timer {
@@ -113,6 +114,9 @@ struct UART {
 		if (reg == (UART0FCR & 0xFF)) {
 			return frameControl;
 		// UART0LCR
+		} else if (reg == (UART0FLG & 0xFF)) {
+			// we pretend we are never busy, never have full fifo
+			return FlagReceiveFifoEmpty;
 		} else {
 			printf("unhandled 32bit uart read %x at pc=%08x lr=%08x\n", reg, cpu->gprs[ARM_PC], cpu->gprs[ARM_LR]);
 			return 0xFFFFFFFF;

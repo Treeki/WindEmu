@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 class Emu {
+public:
     uint8_t ROM[0x1000000];
     uint8_t MemoryBlockC0[0x800000];
     uint8_t MemoryBlockC1[0x800000];
@@ -12,6 +13,7 @@ class Emu {
     uint8_t MemoryBlockD1[0x800000];
     enum { MemoryBlockMask = 0x7FFFFF };
 
+private:
     uint32_t controlReg;
     uint32_t translationTableBase;
     uint32_t domainAccessControl;

@@ -6,7 +6,7 @@
 
 #define INCLUDE_BANK1
 
-Emu::Emu() {
+Emu::Emu() : etna(this) {
 }
 
 
