@@ -1,10 +1,10 @@
 #pragma once
 #include "wind.h"
-#include "arm.h"
+#include "arm710a.h"
 #include <stdio.h>
 
 struct Timer {
-	struct ARMCore *cpu;
+	ARM710a *cpu;
 
 	enum {
 		TICK_INTERVAL_SLOW = CLOCK_SPEED / 2000,
@@ -50,7 +50,7 @@ struct Timer {
 };
 
 struct UART {
-	struct ARMCore *cpu;
+	ARM710a *cpu;
 
 	enum {
 		IntRx = 1,
@@ -105,7 +105,7 @@ struct UART {
 		// UART0INTM?
 		// UART0INTR?
 		} else {
-			printf("unhandled 8bit uart read %x at pc=%08x lr=%08x\n", reg, cpu->gprs[ARM_PC], cpu->gprs[ARM_LR]);
+			printf("unhandled 8bit uart read %x at pc=%08x lr=%08x\n", reg, cpu->getGPR(15), cpu->getGPR(14));
 			return 0xFF;
 		}
 	}
@@ -118,7 +118,7 @@ struct UART {
 			// we pretend we are never busy, never have full fifo
 			return FlagReceiveFifoEmpty;
 		} else {
-			printf("unhandled 32bit uart read %x at pc=%08x lr=%08x\n", reg, cpu->gprs[ARM_PC], cpu->gprs[ARM_LR]);
+			printf("unhandled 32bit uart read %x at pc=%08x lr=%08x\n", reg, cpu->getGPR(15), cpu->getGPR(14));
 			return 0xFFFFFFFF;
 		}
 	}
@@ -132,7 +132,7 @@ struct UART {
 			printf("uart interruptmask updated: %d\n", value);
 		// UART0INTR?
 		} else {
-			printf("unhandled 8bit uart write %x value %02x at pc=%08x lr=%08x\n", reg, value, cpu->gprs[ARM_PC], cpu->gprs[ARM_LR]);
+			printf("unhandled 8bit uart write %x value %02x at pc=%08x lr=%08x\n", reg, value, cpu->getGPR(15), cpu->getGPR(14));
 		}
 	}
 	void writeReg32(uint32_t reg, uint32_t value) {
@@ -151,7 +151,7 @@ struct UART {
 			printf("uart interrupts %x -> %x\n", interrupts, value);
 			interrupts = value;
 		} else {
-			printf("unhandled 32bit uart write %x value %08x at pc=%08x lr=%08x\n", reg, value, cpu->gprs[ARM_PC], cpu->gprs[ARM_LR]);
+			printf("unhandled 32bit uart write %x value %08x at pc=%08x lr=%08x\n", reg, value, cpu->getGPR(15), cpu->getGPR(14));
 		}
 	}
 };

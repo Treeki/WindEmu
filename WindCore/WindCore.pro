@@ -5,10 +5,11 @@
 #-------------------------------------------------
 
 QT       -= core gui
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.14
 
 TARGET = WindCore
 TEMPLATE = lib
-CONFIG += staticlib
+CONFIG += staticlib c++17
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings
@@ -22,6 +23,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    arm710a.cpp \
     etna.cpp \
     wind.cpp \
     isa-arm.c \
@@ -31,6 +33,7 @@ SOURCES += \
     emu.cpp
 
 HEADERS += \
+    arm710a.h \
     etna.h \
     wind_hw.h \
     wind.h \
