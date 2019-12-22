@@ -224,6 +224,8 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 		else if (region == 0xD1)
 			return MemoryBlockD1[physAddr & MemoryBlockMask];
 #endif
+		else if (region >= 0xC0)
+			return 0xFF; // just throw accesses to unmapped RAM away
 	} else {
 		uint32_t result;
 		if (region == 0)
@@ -244,6 +246,8 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 		else if (region == 0xD1)
 			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockD1);
 #endif
+		else if (region >= 0xC0)
+			return 0xFFFFFFFF; // just throw accesses to unmapped RAM away
 		else
 			return {};
 		return result;
@@ -267,6 +271,8 @@ bool Emu::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) 
 		else if (region == 0xD1)
 			MemoryBlockD1[physAddr & MemoryBlockMask] = (uint8_t)value;
 #endif
+		else if (region >= 0xC0)
+			return true; // just throw accesses to unmapped RAM away
 		else if (region == 0x20 && physAddr <= 0x20000FFF)
 			etna.writeReg8(physAddr & 0xFFF, value);
 		else if (region == 0x80 && physAddr <= 0x80000FFF)
@@ -287,6 +293,8 @@ bool Emu::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) 
 		else if (region == 0xD1)
 			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockD1);
 #endif
+		else if (region >= 0xC0)
+			return true; // just throw accesses to unmapped RAM away
 		else if (region == 0x20 && physAddr <= 0x20000FFF)
 			etna.writeReg32(physAddr & 0xFFF, value);
 		else if (region == 0x80 && physAddr <= 0x80000FFF)
@@ -311,6 +319,7 @@ void Emu::configure() {
 	nextTickAt = TICK_INTERVAL;
 	rtc = getRTC();
 
+	setProcessorID(0x41807100);
 	reset();
 }
 
@@ -352,11 +361,15 @@ void Emu::executeUntil(int64_t cycles) {
 			// keep the clock moving
 			passedCycles++;
 		} else {
+			if (auto v = virtToPhys(getGPR(15) - 0xC); v.has_value() && instructionReady())
+				debugPC(v.value());
 			passedCycles += tick();
 
 			uint32_t new_pc = getGPR(15) - 0xC;
-			if (_breakpoints.find(new_pc) != _breakpoints.end())
+			if (_breakpoints.find(new_pc) != _breakpoints.end()) {
+				log("⚠️ Breakpoint triggered at %08x!\n", new_pc);
 				return;
+			}
 		}
 	}
 }
@@ -426,13 +439,33 @@ void Emu::debugPC(uint32_t pc) {
 		const char *wut = identifyObjectCon(container);
 		if (wut) {
 			fetchName(obj, objName);
-			printf("OBJS: added %s at %08x <%s>", wut, obj, objName);
 			if (strcmp(wut, "process") == 0) {
-				fetchProcessFilename(obj, objName);
-				printf(" <%s>", objName);
+				char procName[1000];
+				fetchProcessFilename(obj, procName);
+				log("OBJS: added %s at %08x <%s> <%s>", wut, obj, objName, procName);
+			} else {
+				log("OBJS: added %s at %08x <%s>", wut, obj, objName);
 			}
-			printf("\n");
 		}
+	}
+
+	if (pc == 0x6D8) {
+		uint32_t virtAddr = getGPR(0);
+		uint32_t physAddr = getGPR(1);
+		uint32_t btIndex = getGPR(2);
+		uint32_t regionSize = getGPR(3);
+		log("KERNEL MMU SECTION: v:%08x p:%08x size:%08x idx:%02x",
+			virtAddr, physAddr, regionSize, btIndex);
+	}
+	if (pc == 0x710) {
+		uint32_t virtAddr = getGPR(0);
+		uint32_t physAddr = getGPR(1);
+		uint32_t btIndex = getGPR(2);
+		uint32_t regionSize = getGPR(3);
+		uint32_t pageTableA = getGPR(4);
+		uint32_t pageTableB = getGPR(5);
+		log("KERNEL MMU PAGES: v:%08x p:%08x size:%08x idx:%02x tableA:%08x tableB:%08x",
+			virtAddr, physAddr, regionSize, btIndex, pageTableA, pageTableB);
 	}
 }
 

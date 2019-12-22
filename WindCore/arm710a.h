@@ -18,6 +18,8 @@ typedef optional<uint32_t> MaybeU32;
 class ARM710a
 {
 public:
+	void test();
+
 	enum ValueSize { V8 = 0, V32 = 1 };
 
 	enum MMUFault : uint64_t {
@@ -42,8 +44,11 @@ public:
 		// so we are reusing it for nefarious purposes
 		NonMMUError             = 3,
 
+		MMUFaultTypeMask        = 0xF,
 		MMUFaultDomainMask      = 0xF0,
-		MMUFaultAddressMask     = 0xFFFFFFFF00000000
+		MMUFaultDomainShift     = 4,
+		MMUFaultAddressMask     = 0xFFFFFFFF00000000,
+		MMUFaultAddressShift    = 32
 	};
 
 
@@ -83,6 +88,7 @@ public:
 	void requestIRQ(); // pull nIRQ low
 	void reset();      // pull nRESET low
 
+	bool instructionReady() const { return (prefetchCount == 2); }
 	uint32_t tick();   // run the chip for at least 1 clock cycle
 
 	MaybeU32 readVirtualDebug(uint32_t virtAddr, ValueSize valueSize);
@@ -94,8 +100,14 @@ public:
 	virtual bool writePhysical(uint32_t value, uint32_t physAddr, ARM710a::ValueSize valueSize) = 0;
 
 	uint32_t getGPR(int index) const { return GPRs[index]; }
+	uint32_t getCPSR() const { return CPSR; }
 
+	void setLogger(std::function<void(const char *)> newLogger) { logger = newLogger; }
+protected:
+	void log(const char *format, ...);
 private:
+	std::function<void(const char *)> logger;
+
 	enum { Nop = 0xE1A00000 };
 
 	enum Mode : uint8_t {
@@ -158,22 +170,22 @@ private:
 	bool flagN() const { return CPSR & CPSR_N; }
 	bool checkCondition(int cond) const {
 		switch (cond) {
-		case 0:   return flagZ();
-		case 1:   return !flagZ();
-		case 2:   return flagC();
-		case 3:   return !flagC();
-		case 4:   return flagN();
-		case 5:   return !flagN();
-		case 6:   return flagV();
-		case 7:   return !flagV();
-		case 8:   return flagC() && !flagZ();
-		case 9:   return !flagC() || flagZ();
-		case 0xA: return flagN() == flagV();
-		case 0xB: return flagN() != flagV();
-		case 0xC: return !flagZ() && (flagN() == flagV());
-		case 0xD: return flagZ() || (flagN() != flagV());
-		case 0xE: return true;
-		/*case 0xF:*/
+		/*EQ*/ case 0:   return flagZ();
+		/*NE*/ case 1:   return !flagZ();
+		/*CS*/ case 2:   return flagC();
+		/*CC*/ case 3:   return !flagC();
+		/*MI*/ case 4:   return flagN();
+		/*PL*/ case 5:   return !flagN();
+		/*VS*/ case 6:   return flagV();
+		/*VC*/ case 7:   return !flagV();
+		/*HI*/ case 8:   return flagC() && !flagZ();
+		/*LS*/ case 9:   return !flagC() || flagZ();
+		/*GE*/ case 0xA: return flagN() == flagV();
+		/*LT*/ case 0xB: return flagN() != flagV();
+		/*GT*/ case 0xC: return !flagZ() && (flagN() == flagV());
+		/*LE*/ case 0xD: return flagZ() || (flagN() != flagV());
+		/*AL*/ case 0xE: return true;
+		/*NV*/ /*case 0xF:*/
 		default:  return false;
 		}
 	}

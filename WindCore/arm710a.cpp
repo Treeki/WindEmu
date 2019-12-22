@@ -104,6 +104,7 @@ uint32_t ARM710a::tick() {
 		if (insnFault != NoFault) {
 			// Raise a prefetch error
 			// These do not set FSR or FAR
+			log("prefetch error!");
 			raiseException(Abort32, GPRs[15] - 8, 0xC);
 		} else {
 			clocks += executeInstruction(insn);
@@ -131,6 +132,7 @@ static inline bool extract1(uint32_t value, uint32_t bit) {
 
 uint32_t ARM710a::executeInstruction(uint32_t i) {
 	uint32_t cycles = 1;
+//	log("executing insn %08x @ %08x", i, GPRs[15] - 0xC);
 
 	// a big old dispatch thing here
 	// but first, conditions!
@@ -191,59 +193,64 @@ uint32_t ARM710a::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 				op2 -= 4;
 		}
 
-		switch (extract(Operand2, 6, 5)) {
-		case 0: // Logical Left (LSL)
-			if (shiftBy == 0) {
-				shifterCarryOutput = flagC();
-				// no change to op2!
-			} else if (shiftBy <= 31) {
-				shifterCarryOutput = extract1(op2, 31 - shiftBy);
-				op2 <<= shiftBy;
-			} else if (shiftBy == 32) {
-				shifterCarryOutput = extract1(op2, 0);
-				op2 = 0;
-			} else /*if (shiftBy >= 33)*/ {
-				shifterCarryOutput = false;
-				op2 = 0;
-			}
-			break;
-		case 1: // Logical Right (LSR)
-			if (shiftBy == 0 || shiftBy == 32) {
-				shifterCarryOutput = extract1(op2, 31);
-				op2 = 0;
-			} else if (shiftBy <= 31) {
-				shifterCarryOutput = extract1(op2, shiftBy - 1);
-				op2 >>= shiftBy;
-			} else /*if (shiftBy >= 33)*/ {
-				shifterCarryOutput = false;
-				op2 = 0;
-			}
-			break;
-		case 2: // Arithmetic Right (ASR)
-			if (shiftBy == 0 || shiftBy >= 32) {
-				shifterCarryOutput = extract1(op2, 31);
-				op2 = (int32_t)op2 >> 31;
-			} else /*if (shiftBy <= 31)*/ {
-				shifterCarryOutput = extract1(op2, shiftBy - 1);
-				op2 = (int32_t)op2 >> shiftBy;
-			}
-			break;
-		case 3: // Rotate Right (ROR)
-			if (shiftBy == 0) { // treated as RRX
-				shifterCarryOutput = op2 & 1;
-				op2 >>= 1;
-				op2 |= flagC() ? 0x80000000 : 0;
-			} else {
-				shiftBy %= 32;
-				if (shiftBy == 0) { // like 32
-					shifterCarryOutput = extract1(op2, 31);
-					// no change to op2
-				} else {
-					shifterCarryOutput = extract1(op2, shiftBy - 1);
-					op2 = ROR(op2, shiftBy);
+		if (extract(Operand2, 4, 4) && (shiftBy == 0)) {
+			// register shift by 0 never does anything
+			shifterCarryOutput = flagC();
+		} else {
+			switch (extract(Operand2, 6, 5)) {
+			case 0: // Logical Left (LSL)
+				if (shiftBy == 0) {
+					shifterCarryOutput = flagC();
+					// no change to op2!
+				} else if (shiftBy <= 31) {
+					shifterCarryOutput = extract1(op2, 31 - shiftBy);
+					op2 <<= shiftBy;
+				} else if (shiftBy == 32) {
+					shifterCarryOutput = extract1(op2, 0);
+					op2 = 0;
+				} else /*if (shiftBy >= 33)*/ {
+					shifterCarryOutput = false;
+					op2 = 0;
 				}
+				break;
+			case 1: // Logical Right (LSR)
+				if (shiftBy == 0 || shiftBy == 32) {
+					shifterCarryOutput = extract1(op2, 31);
+					op2 = 0;
+				} else if (shiftBy <= 31) {
+					shifterCarryOutput = extract1(op2, shiftBy - 1);
+					op2 >>= shiftBy;
+				} else /*if (shiftBy >= 33)*/ {
+					shifterCarryOutput = false;
+					op2 = 0;
+				}
+				break;
+			case 2: // Arithmetic Right (ASR)
+				if (shiftBy == 0 || shiftBy >= 32) {
+					shifterCarryOutput = extract1(op2, 31);
+					op2 = (int32_t)op2 >> 31;
+				} else /*if (shiftBy <= 31)*/ {
+					shifterCarryOutput = extract1(op2, shiftBy - 1);
+					op2 = (int32_t)op2 >> shiftBy;
+				}
+				break;
+			case 3: // Rotate Right (ROR)
+				if (shiftBy == 0) { // treated as RRX
+					shifterCarryOutput = op2 & 1;
+					op2 >>= 1;
+					op2 |= flagC() ? 0x80000000 : 0;
+				} else {
+					shiftBy %= 32;
+					if (shiftBy == 0) { // like 32
+						shifterCarryOutput = extract1(op2, 31);
+						// no change to op2
+					} else {
+						shifterCarryOutput = extract1(op2, shiftBy - 1);
+						op2 = ROR(op2, shiftBy);
+					}
+				}
+				break;
 			}
-			break;
 		}
 	} else {
 		// IMMEDIATE
@@ -252,7 +259,6 @@ uint32_t ARM710a::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 
 		uint32_t Rotate = extract(Operand2, 11, 8);
 		uint32_t Imm = extract(Operand2, 7, 0);
-		Imm = (uint32_t)(int8_t)Imm;
 		op2 = ROR(Imm, Rotate * 2);
 		shifterCarryOutput = flagC(); // correct? unsure...
 	}
@@ -269,7 +275,7 @@ uint32_t ARM710a::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 	flags |= (CPSR & CPSR_V);
 
 #define ADD_OP(a, b, c) \
-	result = a + b + (uint32_t)(c); \
+	result = (uint64_t)(a) + (uint64_t)(b) + (uint64_t)(c); \
 	flags |= (result & 0xFFFFFFFF) ? 0 : CPSR_Z; \
 	flags |= (result & 0x80000000) ? CPSR_N : 0; \
 	flags |= (result & 0x100000000) ? CPSR_C : 0; \
@@ -301,9 +307,11 @@ uint32_t ARM710a::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 		// Output-less opcodes: special behaviour
 		if (S) {
 			CPSR = (CPSR & ~CPSR_FlagMask) | flags;
+//			log("CPSR setflags=%08x results in CPSR=%08x", flags, CPSR);
 		} else if (Opcode == 8) {
 			// MRS, CPSR -> Reg
 			GPRs[Rd] = CPSR;
+			log("r%d <- CPSR(%08x)", Rd, GPRs[Rd]);
 		} else if (Opcode == 9) {
 			// MSR, Reg -> CPSR
 			bool canChangeMode = extract1(Rn, 0);
@@ -311,27 +319,33 @@ uint32_t ARM710a::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 				auto newCPSR = GPRs[extract(Operand2, 3, 0)];
 				switchMode(modeFromCPSR(newCPSR));
 				CPSR = newCPSR;
+				log("CPSR change privileged: %08x", CPSR);
 			} else {
 				// for the flag-only version, immediates are allowed
 				// so we just re-use what was calculated earlier...
 				auto newFlag = I ? op2 : GPRs[extract(Operand2, 3, 0)];
 				CPSR &= ~CPSR_FlagMask;
 				CPSR |= (newFlag & CPSR_FlagMask);
+				log("CPSR change unprivileged: new=%08x result=%08x", newFlag, CPSR);
 			}
 		} else if (Opcode == 0xA) {
 			// MRS, SPSR -> Reg
-			if (isPrivileged())
+			if (isPrivileged()) {
 				GPRs[Rd] = SPSRs[currentBank()];
+				log("r%d <- SPSR(%08x)", Rd, GPRs[Rd]);
+			}
 		} else /*if (Opcode == 0xB)*/ {
 			bool canChangeMode = extract1(Rn, 0);
 			if (isPrivileged()) {
 				if (canChangeMode) {
 					SPSRs[currentBank()] = GPRs[extract(Operand2, 3, 0)];
+					log("SPSR change privileged: %08x", SPSRs[currentBank()]);
 				} else {
 					// same hat
 					auto newFlag = I ? op2 : GPRs[extract(Operand2, 3, 0)];
 					SPSRs[currentBank()] &= ~CPSR_FlagMask;
 					SPSRs[currentBank()] |= (newFlag & CPSR_FlagMask);
+					log("SPSR change unprivileged: new=%08x result=%08x", newFlag, SPSRs[currentBank()]);
 				}
 			}
 		}
@@ -348,9 +362,11 @@ uint32_t ARM710a::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 				auto saved = SPSRs[currentBank()];
 				switchMode(modeFromCPSR(saved));
 				CPSR = saved;
+				log("dataproc restore CPSR: %08x", CPSR);
 			}
 		} else if (S) {
 			CPSR = (CPSR & ~CPSR_FlagMask) | flags;
+//			log("dataproc flag change: flags=%08x CPSR=%08x", flags, CPSR);
 		}
 	}
 
@@ -400,7 +416,7 @@ uint32_t ARM710a::execSingleDataTransfer(uint32_t IPUBWL, uint32_t Rn, uint32_t 
 	auto valueSize = extract1(IPUBWL, 2) ? V8 : V32;
 	bool up = extract1(IPUBWL, 3);
 	bool preIndex = extract1(IPUBWL, 4);
-	bool immediate = extract1(IPUBWL, 5);
+	bool immediate = !extract1(IPUBWL, 5);
 
 	// calculate the offset
 	uint32_t calcOffset;
@@ -438,10 +454,8 @@ uint32_t ARM710a::execSingleDataTransfer(uint32_t IPUBWL, uint32_t Rn, uint32_t 
 		}
 	} else {
 		// IMMEDIATE
-		uint32_t Rotate = extract(offset, 11, 8);
-		uint32_t Imm = extract(offset, 7, 0);
-		Imm = (uint32_t)(int8_t)Imm;
-		calcOffset = ROR(Imm, Rotate * 2);
+		// No rotation or anything here
+		calcOffset = offset;
 	}
 
 	uint32_t base = GPRs[Rn];
@@ -458,8 +472,10 @@ uint32_t ARM710a::execSingleDataTransfer(uint32_t IPUBWL, uint32_t Rn, uint32_t 
 		if (changeModes) switchMode(User32);
 		auto readResult = readVirtual(transferAddr, valueSize);
 		if (changeModes) switchMode(saveMode);
-		if (readResult.first.has_value())
+		if (readResult.first.has_value()) {
 			GPRs[Rd] = readResult.first.value();
+			if (Rd == 15) prefetchCount = 0;
+		}
 		fault = readResult.second;
 	} else {
 		uint32_t value = GPRs[Rd];
@@ -537,6 +553,9 @@ uint32_t ARM710a::execBlockDataTransfer(uint32_t PUSWL, uint32_t Rn, uint32_t re
 			}
 		}
 	}
+
+	if (registerList & 0x8000)
+		prefetchCount = 0;
 
 	// datasheet specifies that base register must be
 	// restored if an error occurs during LDM
@@ -741,7 +760,7 @@ pair<MaybeU32, ARM710a::MMUFault> ARM710a::readVirtual(uint32_t virtAddr, ValueS
 		if (auto v = readPhysical(virtAddr, valueSize); v.has_value())
 			return make_pair(v.value(), NoFault);
 		else
-			return make_pair(MaybeU32(), NonMMUError);
+			return make_pair(MaybeU32(), encodeFault(NonMMUError, 0, virtAddr));
 	}
 
 	auto translated = translateAddressUsingTlb(virtAddr);
@@ -775,7 +794,7 @@ ARM710a::MMUFault ARM710a::writeVirtual(uint32_t value, uint32_t virtAddr, Value
 	if (!isMMUEnabled()) {
 		// direct virtual -> physical mapping, sans MMU
 		if (!writePhysical(value, virtAddr, valueSize))
-			return NonMMUError;
+			return encodeFault(NonMMUError, 0, virtAddr);
 	} else {
 		auto translated = translateAddressUsingTlb(virtAddr);
 		if (holds_alternative<MMUFault>(translated))
@@ -965,12 +984,61 @@ ARM710a::MMUFault ARM710a::checkAccessPermissions(ARM710a::TlbEntry *entry, uint
 void ARM710a::reportFault(MMUFault fault) {
 	if (fault != NoFault) {
 		if ((fault & 0xF) != NonMMUError) {
-			cp15_faultStatus = fault & 0xFFFF;
-			cp15_faultAddress = fault >> 32;
+			cp15_faultStatus = fault & (MMUFaultTypeMask | MMUFaultDomainMask);
+			cp15_faultAddress = fault >> MMUFaultAddressShift;
 		}
+
+		static const char *faultTypes[] = {
+			"NoFault",
+			"AlignmentFault",
+			"???",
+			"NonMMUError",
+			"SectionLinefetchError",
+			"SectionTranslationFault",
+			"PageLinefetchError",
+			"PageTranslationFault",
+			"SectionOtherBusError",
+			"SectionDomainFault",
+			"PageOtherBusError",
+			"PageDomainFault",
+			"Lv1TranslationError",
+			"SectionPermissionFault",
+			"Lv2TranslationError",
+			"PagePermissionFault"
+		};
+		log("⚠️ Fault type=%s domain=%d address=%08x pc=%08x lr=%08x",
+			faultTypes[fault & MMUFaultTypeMask],
+			(fault & MMUFaultDomainMask) >> MMUFaultDomainShift,
+			fault >> MMUFaultAddressShift,
+			GPRs[15], GPRs[14]);
 
 		// this signals a branch to DataAbort after the
 		// instruction is done executing
 		faultTriggeredThisCycle = true;
 	}
+}
+
+
+void ARM710a::log(const char *format, ...) {
+	if (logger) {
+		char buffer[1024];
+
+		va_list vaList;
+		va_start(vaList, format);
+		vsnprintf(buffer, sizeof(buffer), format, vaList);
+		va_end(vaList);
+
+		logger(buffer);
+	}
+}
+
+
+void ARM710a::test() {
+	uint64_t result;
+	uint32_t flags = 0;
+	uint32_t v = 0x10000000;
+
+	SUB_OP(v, v, 1);
+
+	log("RESULT:%llx FLAGS:%08x", result, flags);
 }

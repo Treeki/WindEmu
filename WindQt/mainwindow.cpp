@@ -10,9 +10,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+	ui->logView->setMaximumBlockCount(1000);
 
     emu = new Emu;
 	emu->loadROM("/Users/ash/src/psion/Sys$rom.bin");
+	emu->setLogger([&](const char *str) {
+		ui->logView->appendPlainText(str);
+	});
+	emu->test();
 
     timer = new QTimer(this);
     timer->setInterval(1000/64);
@@ -32,8 +37,25 @@ void MainWindow::updateScreen()
 
 	updateMemory();
 
+	char flagDisplay[] = {
+		(emu->getCPSR() & 0x80000000) ? 'N' : '-',
+		(emu->getCPSR() & 0x40000000) ? 'Z' : '-',
+		(emu->getCPSR() & 0x20000000) ? 'C' : '-',
+		(emu->getCPSR() & 0x10000000) ? 'V' : '-',
+		0
+	};
+	const char *modeName = "???";
+	switch (emu->getCPSR() & 0x1F) {
+	case 0x10: modeName = "User"; break;
+	case 0x11: modeName = "FIQ"; break;
+	case 0x12: modeName = "IRQ"; break;
+	case 0x13: modeName = "Supervisor"; break;
+	case 0x17: modeName = "Abort"; break;
+	case 0x1B: modeName = "Undefined"; break;
+	}
+
     ui->regsLabel->setText(
-				QString("R0: %1 / R1: %2 / R2: %3 / R3: %4 / R4: %5 / R5: %6 / R6: %7 / R7: %8\nR8: %9 / R9: %10 / R10:%11 / R11:%12 / R12:%13 / SP: %14 / LR: %15 / PC: %16")
+				QString("R0: %1 / R1: %2 / R2: %3 / R3: %4 / R4: %5 / R5: %6 / R6: %7 / R7: %8\nR8: %9 / R9: %10 / R10:%11 / R11:%12 / R12:%13 / SP: %14 / LR: %15 / PC: %16\n%17 / Mode: %18")
                 .arg(emu->getGPR(0), 8, 16)
                 .arg(emu->getGPR(1), 8, 16)
                 .arg(emu->getGPR(2), 8, 16)
@@ -50,11 +72,13 @@ void MainWindow::updateScreen()
                 .arg(emu->getGPR(13), 8, 16)
                 .arg(emu->getGPR(14), 8, 16)
                 .arg(emu->getGPR(15), 8, 16)
+				.arg(flagDisplay)
+				.arg(modeName)
                 );
 
     // show a crude disassembly
     const int context = 8 * 4;
-    uint32_t pc = emu->getGPR(15) - 4;
+	uint32_t pc = emu->getGPR(15) - 8;
     uint32_t minCode = pc - context;
 	if (minCode >= (UINT32_MAX - context))
         minCode = 0;
@@ -64,7 +88,7 @@ void MainWindow::updateScreen()
 
 	QStringList codeLines;
 	for (uint32_t addr = minCode; addr >= minCode && addr <= maxCode; addr += 4) {
-		const char *prefix = (addr == pc) ? "==>" : "   ";
+		const char *prefix = (addr == pc) ? (emu->instructionReady() ? "==>" : "...") : "   ";
         struct ARMInstructionInfo info;
         char buffer[512];
 
@@ -228,8 +252,9 @@ void MainWindow::on_stopButton_clicked()
 
 void MainWindow::on_stepTickButton_clicked()
 {
-    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED * 2));
-    updateScreen();
+//    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED * 2));
+	emu->executeUntil(emu->currentCycles() + 25000);
+	updateScreen();
 }
 
 void MainWindow::on_stepInsnButton_clicked()
