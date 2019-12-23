@@ -5,6 +5,9 @@
 
 using namespace std;
 
+// Everything I thought is a lie.
+// Turns out the 5mx/Windermere is an ARM710T, not an ARM710a.
+
 // ASSUMPTIONS:
 // - Little-endian will be used
 // - 26-bit address spaces will not be used
@@ -15,7 +18,7 @@ using namespace std;
 
 typedef optional<uint32_t> MaybeU32;
 
-class ARM710a
+class ARM710T
 {
 public:
 	void test();
@@ -53,11 +56,11 @@ public:
 
 
 
-	ARM710a() {
-		cp15_id = 0x41047100;
+	ARM710T() {
+		cp15_id = 0x41807100;
 		clearAllValues();
 	}
-	virtual ~ARM710a() { }
+	virtual ~ARM710T() { }
 
 	void clearAllValues() {
 		bank = MainBank;
@@ -84,6 +87,8 @@ public:
 	}
 
 	void setProcessorID(uint32_t v) { cp15_id = v; }
+	bool canAcceptFIQ() const { return !(CPSR & CPSR_FIQDisable); }
+	bool canAcceptIRQ() const { return !(CPSR & CPSR_IRQDisable); }
 	void requestFIQ(); // pull nFIQ low
 	void requestIRQ(); // pull nIRQ low
 	void reset();      // pull nRESET low
@@ -96,8 +101,8 @@ public:
 
 	pair<MaybeU32, MMUFault> readVirtual(uint32_t virtAddr, ValueSize valueSize);
 	virtual MaybeU32 readPhysical(uint32_t physAddr, ValueSize valueSize) = 0;
-	MMUFault writeVirtual(uint32_t value, uint32_t virtAddr, ARM710a::ValueSize valueSize);
-	virtual bool writePhysical(uint32_t value, uint32_t physAddr, ARM710a::ValueSize valueSize) = 0;
+	MMUFault writeVirtual(uint32_t value, uint32_t virtAddr, ARM710T::ValueSize valueSize);
+	virtual bool writePhysical(uint32_t value, uint32_t physAddr, ARM710T::ValueSize valueSize) = 0;
 
 	uint32_t getGPR(int index) const { return GPRs[index]; }
 	uint32_t getCPSR() const { return CPSR; }

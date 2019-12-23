@@ -208,6 +208,8 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 	if (valueSize == V8) {
 		if (region == 0)
 			return ROM[physAddr & 0xFFFFFF];
+		else if (region == 0x10)
+			return ROM2[physAddr & 0x3FFFF];
 		else if (region == 0x20 && physAddr <= 0x20000FFF)
 			return etna.readReg8(physAddr & 0xFFF);
 		else if (region == 0x80 && physAddr <= 0x80000FFF)
@@ -230,6 +232,8 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 		uint32_t result;
 		if (region == 0)
 			LOAD_32LE(result, physAddr & 0xFFFFFF, ROM);
+		else if (region == 0x10)
+			LOAD_32LE(result, physAddr & 0x3FFFF, ROM2);
 		else if (region == 0x20 && physAddr <= 0x20000FFF)
 			result = etna.readReg32(physAddr & 0xFFF);
 		else if (region == 0x80 && physAddr <= 0x80000FFF)
@@ -319,7 +323,6 @@ void Emu::configure() {
 	nextTickAt = TICK_INTERVAL;
 	rtc = getRTC();
 
-	setProcessorID(0x41807100);
 	reset();
 }
 
@@ -351,10 +354,14 @@ void Emu::executeUntil(int64_t cycles) {
 		if (tc2.tick(passedCycles))
 			pendingInterrupts |= (1<<TC2OI);
 
-		if ((pendingInterrupts & interruptMask & FIQ_INTERRUPTS) != 0)
+		if ((pendingInterrupts & interruptMask & FIQ_INTERRUPTS) != 0 && canAcceptFIQ()) {
 			requestFIQ();
-		if ((pendingInterrupts & interruptMask & IRQ_INTERRUPTS) != 0)
+			halted = false;
+		}
+		if ((pendingInterrupts & interruptMask & IRQ_INTERRUPTS) != 0 && canAcceptIRQ()) {
 			requestIRQ();
+			halted = false;
+		}
 
 		// what's running?
 		if (halted) {
@@ -367,7 +374,7 @@ void Emu::executeUntil(int64_t cycles) {
 
 			uint32_t new_pc = getGPR(15) - 0xC;
 			if (_breakpoints.find(new_pc) != _breakpoints.end()) {
-				log("⚠️ Breakpoint triggered at %08x!\n", new_pc);
+				log("⚠️ Breakpoint triggered at %08x!", new_pc);
 				return;
 			}
 		}

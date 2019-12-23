@@ -1,10 +1,10 @@
 #pragma once
 #include "wind.h"
-#include "arm710a.h"
+#include "arm710t.h"
 #include <stdio.h>
 
 struct Timer {
-	ARM710a *cpu;
+	ARM710T *cpu;
 
 	enum {
 		TICK_INTERVAL_SLOW = CLOCK_SPEED / 2000,
@@ -50,7 +50,7 @@ struct Timer {
 };
 
 struct UART {
-	ARM710a *cpu;
+	ARM710T *cpu;
 
 	enum {
 		IntRx = 1,

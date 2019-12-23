@@ -1,12 +1,13 @@
 #pragma once
-#include "arm710a.h"
+#include "arm710t.h"
 #include "wind_hw.h"
 #include "etna.h"
 #include <unordered_set>
 
-class Emu : public ARM710a {
+class Emu : public ARM710T {
 public:
     uint8_t ROM[0x1000000];
+	uint8_t ROM2[0x40000];
     uint8_t MemoryBlockC0[0x800000];
     uint8_t MemoryBlockC1[0x800000];
     uint8_t MemoryBlockD0[0x800000];

@@ -92,7 +92,7 @@ void MainWindow::updateScreen()
         struct ARMInstructionInfo info;
         char buffer[512];
 
-		auto result = emu->readVirtual(addr, ARM710a::V32);
+		auto result = emu->readVirtual(addr, ARM710T::V32);
 		if (result.first.has_value()) {
 			uint32_t opcode = result.first.value();
 			ARMDecodeARM(opcode, &info);
@@ -253,7 +253,7 @@ void MainWindow::on_stopButton_clicked()
 void MainWindow::on_stepTickButton_clicked()
 {
 //    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED * 2));
-	emu->executeUntil(emu->currentCycles() + 25000);
+	emu->executeUntil(emu->currentCycles() + 2500000);
 	updateScreen();
 }
 
@@ -308,7 +308,7 @@ void MainWindow::updateMemory()
 	uint8_t block[0x100];
 	if (ok) {
 		for (int i = 0; i < 0x100; i++) {
-			block[i] = emu->readPhysical(physBase + i, ARM710a::V8).value();
+			block[i] = emu->readPhysical(physBase + i, ARM710T::V8).value();
 		}
 	}
 
@@ -359,7 +359,7 @@ void MainWindow::on_writeByteButton_clicked()
 {
 	uint32_t address = ui->memoryViewAddress->text().toUInt(nullptr, 16);
 	uint8_t value = (uint8_t)ui->memoryWriteValue->text().toUInt(nullptr, 16);
-	emu->writeVirtual(value, address, ARM710a::V8);
+	emu->writeVirtual(value, address, ARM710T::V8);
 	updateMemory();
 }
 
@@ -367,6 +367,6 @@ void MainWindow::on_writeDwordButton_clicked()
 {
 	uint32_t address = ui->memoryViewAddress->text().toUInt(nullptr, 16);
 	uint32_t value = ui->memoryWriteValue->text().toUInt(nullptr, 16);
-	emu->writeVirtual(value, address, ARM710a::V32);
+	emu->writeVirtual(value, address, ARM710T::V32);
 	updateMemory();
 }
