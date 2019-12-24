@@ -16,6 +16,9 @@ using namespace std;
 // Write buffer is 4 address FIFO, 8 data FIFO
 // TLB is 64 entries
 
+// Speedhacks:
+//#define ARM710T_CACHE
+
 typedef optional<uint32_t> MaybeU32;
 
 class ARM710T
@@ -80,7 +83,9 @@ public:
 		cp15_faultStatus = 0;
 		cp15_faultAddress = 0;
 		prefetchCount = 0;
+#ifdef ARM710T_CACHE
 		clearCache();
+#endif
 		flushTlb();
 	}
 
@@ -248,6 +253,7 @@ private:
 	void reportFault(MMUFault fault);
 
 	// Instruction/Data Cache
+#ifdef ARM710T_CACHE
 	enum {
 		CacheSets = 4,
 		CacheBlocksPerSet = 128,
@@ -267,6 +273,7 @@ private:
 	pair<MaybeU32, MMUFault> addCacheLineAndRead(uint32_t physAddr, uint32_t virtAddr, ValueSize valueSize, int domain, bool isPage);
 	MaybeU32 readCached(uint32_t virtAddr, ValueSize valueSize);
 	bool writeCached(uint32_t value, uint32_t virtAddr, ValueSize valueSize);
+#endif
 
 	// Instruction Loop
 	int prefetchCount;

@@ -70,7 +70,9 @@ void ARM710T::requestIRQ() {
 }
 
 void ARM710T::reset() {
+#ifdef ARM710T_CACHE
 	clearCache();
+#endif
 	raiseException(Supervisor32, 0, 0);
 }
 
@@ -630,7 +632,9 @@ uint32_t ARM710T::execCP15RegisterTransfer(uint32_t CPOpc, bool L, uint32_t CRn,
 		case 3: cp15_domainAccessControl = what; break;
 		case 5: cp15_faultStatus = what; break;
 		case 6: cp15_faultAddress = what; break;
+#ifdef ARM710T_CACHE
 		case 7: clearCache(); log("cache cleared"); break;
+#endif
 		case 8: {
 			if (CPOpc == 1)
 				flushTlb(what);
@@ -646,6 +650,7 @@ uint32_t ARM710T::execCP15RegisterTransfer(uint32_t CPOpc, bool L, uint32_t CRn,
 
 
 
+#ifdef ARM710T_CACHE
 void ARM710T::clearCache() {
 	for (uint32_t i = 0; i < CacheSets; i++) {
 		for (uint32_t j = 0; j < CacheBlocksPerSet; j++) {
@@ -727,6 +732,7 @@ bool ARM710T::writeCached(uint32_t value, uint32_t virtAddr, ValueSize valueSize
 	}
 	return false;
 }
+#endif
 
 
 uint32_t ARM710T::physAddrFromTlbEntry(TlbEntry *tlbEntry, uint32_t virtAddr) {
@@ -771,8 +777,10 @@ pair<MaybeU32, ARM710T::MMUFault> ARM710T::readVirtual(uint32_t virtAddr, ValueS
 		return make_pair(MaybeU32(), encodeFault(AlignmentFault, 0, virtAddr));
 
 	// fast path: cache
+#ifdef ARM710T_CACHE
 	if (auto v = readCached(virtAddr, valueSize); v.has_value())
 		return make_pair(v.value(), NoFault);
+#endif
 
 	if (!isMMUEnabled()) {
 		// things are very simple without a MMU
@@ -796,11 +804,14 @@ pair<MaybeU32, ARM710T::MMUFault> ARM710T::readVirtual(uint32_t virtAddr, ValueS
 	bool isPage = (tlbEntry->lv2Entry != 0);
 
 	uint32_t physAddr = physAddrFromTlbEntry(tlbEntry, virtAddr);
-	bool cacheable = tlbEntry->lv2Entry ? (tlbEntry->lv2Entry & 8) : (tlbEntry->lv1Entry & 8);
 
+#ifdef ARM710T_CACHE
+	bool cacheable = tlbEntry->lv2Entry ? (tlbEntry->lv2Entry & 8) : (tlbEntry->lv1Entry & 8);
 	if (cacheable && isCacheEnabled())
 		return addCacheLineAndRead(physAddr, virtAddr, valueSize, domain, isPage);
-	else if (auto result = readPhysical(physAddr, valueSize); result.has_value())
+	else
+#endif
+	if (auto result = readPhysical(physAddr, valueSize); result.has_value())
 		return make_pair(result, NoFault);
 	else
 		return make_pair(result, encodeFaultSorP(SorPOtherBusError, isPage, domain, virtAddr));
@@ -834,7 +845,9 @@ ARM710T::MMUFault ARM710T::writeVirtual(uint32_t value, uint32_t virtAddr, Value
 	}
 
 	// commit to cache if all was good
+#ifdef ARM710T_CACHE
 	writeCached(value, virtAddr, valueSize);
+#endif
 	return NoFault;
 }
 
