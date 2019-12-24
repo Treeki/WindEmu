@@ -1,10 +1,11 @@
 #pragma once
-#include "arm710t.h"
-#include "wind_hw.h"
+#include "arm710.h"
+#include "wind_defs.h"
+#include "hardware.h"
 #include "etna.h"
 #include <unordered_set>
 
-class Emu : public ARM710T {
+class Windermere : public ARM710 {
 public:
     uint8_t ROM[0x1000000];
 	uint8_t ROM2[0x40000];
@@ -64,7 +65,7 @@ public:
     bool keyboardKeys[8*7] = {0};
 
 public:
-    Emu();
+	Windermere();
     void loadROM(const char *path);
     void dumpRAM(const char *path);
 	void executeUntil(int64_t cycles);

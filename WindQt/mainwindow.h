@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "../WindCore/emu.h"
+#include "../WindCore/clps7111.h"
 
 namespace Ui {
 class MainWindow;
@@ -44,7 +44,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    Emu *emu;
+	CLPS7111 *emu;
     QTimer *timer;
     void updateScreen();
     void updateBreakpointsList();

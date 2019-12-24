@@ -1,5 +1,5 @@
 #include "etna.h"
-#include "emu.h"
+#include "arm710.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -45,7 +45,7 @@ static const char *nameReg(uint32_t reg) {
 }
 
 
-Etna::Etna(Emu *owner) {
+Etna::Etna(ARM710 *owner) {
     this->owner = owner;
 
     for (int i = 0; i < 0x80; i++)

@@ -1,6 +1,6 @@
-#include "emu.h"
-#include "wind.h"
-#include "wind_hw.h"
+#include "windermere.h"
+#include "wind_defs.h"
+#include "hardware.h"
 #include <time.h>
 #include "common.h"
 
@@ -8,16 +8,16 @@
 //#define INCLUDE_D
 //#define INCLUDE_BANK1
 
-Emu::Emu() : etna(this) {
+Windermere::Windermere() : ARM710(true), etna(this) {
 }
 
 
-uint32_t Emu::getRTC() {
+uint32_t Windermere::getRTC() {
     return time(nullptr) - 946684800;
 }
 
 
-uint32_t Emu::readReg8(uint32_t reg) {
+uint32_t Windermere::readReg8(uint32_t reg) {
 	if ((reg & 0xF00) == 0x600) {
 		return uart1.readReg8(reg & 0xFF);
 	} else if ((reg & 0xF00) == 0x700) {
@@ -47,7 +47,7 @@ uint32_t Emu::readReg8(uint32_t reg) {
 		return 0xFF;
 	}
 }
-uint32_t Emu::readReg32(uint32_t reg) {
+uint32_t Windermere::readReg32(uint32_t reg) {
 	if (reg == LCDCTL) {
 		printf("LCD control read pc=%08x lr=%08x !!!\n", getGPR(15), getGPR(14));
 		return lcdControl;
@@ -92,7 +92,7 @@ uint32_t Emu::readReg32(uint32_t reg) {
 	}
 }
 
-void Emu::writeReg8(uint32_t reg, uint8_t value) {
+void Windermere::writeReg8(uint32_t reg, uint8_t value) {
 	if ((reg & 0xF00) == 0x600) {
 		uart1.writeReg8(reg & 0xFF, value);
 	} else if ((reg & 0xF00) == 0x700) {
@@ -105,7 +105,7 @@ void Emu::writeReg8(uint32_t reg, uint8_t value) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0x00FFFFFF;
 		portValues |= (uint32_t)value << 24;
-		diffPorts(oldPorts, portValues);
+		windDiffPorts(oldPorts, portValues);
 	} else if (reg == PBDR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFF00FFFF;
@@ -116,17 +116,17 @@ void Emu::writeReg8(uint32_t reg, uint8_t value) {
 			etna.setPromBit0Low();
 		if ((portValues & 0x20000) && !(oldPorts & 0x20000))
 			etna.setPromBit1High();
-		diffPorts(oldPorts, portValues);
+		windDiffPorts(oldPorts, portValues);
 	} else if (reg == PCDR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFFFF00FF;
 		portValues |= (uint32_t)value << 8;
-		diffPorts(oldPorts, portValues);
+		windDiffPorts(oldPorts, portValues);
 	} else if (reg == PDDR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFFFFFF00;
 		portValues |= (uint32_t)value;
-		diffPorts(oldPorts, portValues);
+		windDiffPorts(oldPorts, portValues);
 	} else if (reg == PADDR) {
 		portDirections &= 0x00FFFFFF;
 		portDirections |= (uint32_t)value << 24;
@@ -145,7 +145,7 @@ void Emu::writeReg8(uint32_t reg, uint8_t value) {
 //		printf("RegWrite8 unknown:: pc=%08x reg=%03x value=%02x\n", getGPR(15)-4, reg, value);
 	}
 }
-void Emu::writeReg32(uint32_t reg, uint32_t value) {
+void Windermere::writeReg32(uint32_t reg, uint32_t value) {
 	if (reg == LCDCTL) {
 		printf("LCD: ctl write %08x\n", value);
 		lcdControl = value;
@@ -159,10 +159,10 @@ void Emu::writeReg32(uint32_t reg, uint32_t value) {
 	} else if (reg == LCDT2) {
 		printf("LCD: clocks write %08x\n", value);
 	} else if (reg == INTENS) {
-//		diffInterrupts(interruptMask, interruptMask | value);
+//		windDiffInterrupts(interruptMask, interruptMask | value);
 		interruptMask |= value;
 	} else if (reg == INTENC) {
-//		diffInterrupts(interruptMask, interruptMask &~ value);
+//		windDiffInterrupts(interruptMask, interruptMask &~ value);
 		interruptMask &= ~value;
 	} else if (reg == HALT) {
 		halted = true;
@@ -190,7 +190,7 @@ void Emu::writeReg32(uint32_t reg, uint32_t value) {
 	}
 }
 
-bool Emu::isPhysAddressValid(uint32_t physAddress) const {
+bool Windermere::isPhysAddressValid(uint32_t physAddress) const {
 	uint8_t region = (physAddress >> 24) & 0xF1;
 	switch (region) {
 	case 0: return true;
@@ -204,7 +204,7 @@ bool Emu::isPhysAddressValid(uint32_t physAddress) const {
 }
 
 
-MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
+MaybeU32 Windermere::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 	uint8_t region = (physAddr >> 24) & 0xF1;
 	if (valueSize == V8) {
 		if (region == 0)
@@ -273,7 +273,7 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 	return {};
 }
 
-bool Emu::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) {
+bool Windermere::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) {
 	uint8_t region = (physAddr >> 24) & 0xF1;
 	if (valueSize == V8) {
 #if defined(INCLUDE_BANK1)
@@ -336,7 +336,7 @@ bool Emu::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) 
 
 
 
-void Emu::configure() {
+void Windermere::configure() {
 	if (configured) return;
 	configured = true;
 
@@ -346,6 +346,8 @@ void Emu::configure() {
 	uart2.cpu = this;
 	memset(&tc1, 0, sizeof(tc1));
 	memset(&tc2, 0, sizeof(tc1));
+	tc1.clockSpeed = CLOCK_SPEED;
+	tc2.clockSpeed = CLOCK_SPEED;
 
 	nextTickAt = TICK_INTERVAL;
 	rtc = getRTC();
@@ -353,13 +355,13 @@ void Emu::configure() {
 	reset();
 }
 
-void Emu::loadROM(const char *path) {
+void Windermere::loadROM(const char *path) {
 	FILE *f = fopen(path, "rb");
 	fread(ROM, 1, sizeof(ROM), f);
 	fclose(f);
 }
 
-void Emu::executeUntil(int64_t cycles) {
+void Windermere::executeUntil(int64_t cycles) {
 	if (!configured)
 		configure();
 
@@ -413,7 +415,7 @@ void Emu::executeUntil(int64_t cycles) {
 	}
 }
 
-void Emu::dumpRAM(const char *path) {
+void Windermere::dumpRAM(const char *path) {
 	FILE *f = fopen(path, "wb");
 	fwrite(MemoryBlockC0, 1, sizeof(MemoryBlockC0), f);
 	fwrite(MemoryBlockC1, 1, sizeof(MemoryBlockC1), f);
@@ -424,7 +426,7 @@ void Emu::dumpRAM(const char *path) {
 
 
 
-void Emu::printRegs() {
+void Windermere::printRegs() {
 	printf("R00:%08x R01:%08x R02:%08x R03:%08x\n", getGPR(0), getGPR(1), getGPR(2), getGPR(3));
 	printf("R04:%08x R05:%08x R06:%08x R07:%08x\n", getGPR(4), getGPR(5), getGPR(6), getGPR(7));
 	printf("R08:%08x R09:%08x R10:%08x R11:%08x\n", getGPR(8), getGPR(9), getGPR(10), getGPR(11));
@@ -432,7 +434,7 @@ void Emu::printRegs() {
 //    printf("cpsr=%08x spsr=%08x\n", cpu.cpsr.packed, cpu.spsr.packed);
 }
 
-const char *Emu::identifyObjectCon(uint32_t ptr) {
+const char *Windermere::identifyObjectCon(uint32_t ptr) {
 	if (ptr == readVirtualDebug(0x80000980, V32).value()) return "process";
 	if (ptr == readVirtualDebug(0x80000984, V32).value()) return "thread";
 	if (ptr == readVirtualDebug(0x80000988, V32).value()) return "chunk";
@@ -449,7 +451,7 @@ const char *Emu::identifyObjectCon(uint32_t ptr) {
 	return NULL;
 }
 
-void Emu::fetchStr(uint32_t str, char *buf) {
+void Windermere::fetchStr(uint32_t str, char *buf) {
 	if (str == 0) {
 		strcpy(buf, "<NULL>");
 		return;
@@ -461,15 +463,15 @@ void Emu::fetchStr(uint32_t str, char *buf) {
 	buf[size] = 0;
 }
 
-void Emu::fetchName(uint32_t obj, char *buf) {
+void Windermere::fetchName(uint32_t obj, char *buf) {
 	fetchStr(readVirtualDebug(obj + 0x10, V32).value(), buf);
 }
 
-void Emu::fetchProcessFilename(uint32_t obj, char *buf) {
+void Windermere::fetchProcessFilename(uint32_t obj, char *buf) {
 	fetchStr(readVirtualDebug(obj + 0x3C, V32).value(), buf);
 }
 
-void Emu::debugPC(uint32_t pc) {
+void Windermere::debugPC(uint32_t pc) {
 	char objName[1000];
 	if (pc == 0x2CBC4) {
 		// CObjectCon::AddL()
@@ -509,7 +511,7 @@ void Emu::debugPC(uint32_t pc) {
 }
 
 
-const uint8_t *Emu::getLCDBuffer() const {
+const uint8_t *Windermere::getLCDBuffer() const {
 	if ((lcdAddress >> 24) == 0xC0)
 		return &MemoryBlockC0[lcdAddress & MemoryBlockMask];
 	else
@@ -517,7 +519,7 @@ const uint8_t *Emu::getLCDBuffer() const {
 }
 
 
-uint8_t Emu::readKeyboard() {
+uint8_t Windermere::readKeyboard() {
 	uint8_t val = 0;
 	if (kScan & 8) {
 		// Select one keyboard

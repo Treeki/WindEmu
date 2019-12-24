@@ -1,14 +1,11 @@
 #pragma once
-#include "wind.h"
-#include "arm710t.h"
+#include "arm710.h"
 #include <stdio.h>
 
 struct Timer {
-	ARM710T *cpu;
+	ARM710 *cpu;
 
 	enum {
-		TICK_INTERVAL_SLOW = CLOCK_SPEED / 2000,
-		TICK_INTERVAL_FAST = CLOCK_SPEED / 512000,
 		MODE_512KHZ = 1<<3,
 		PERIODIC = 1<<6,
 		ENABLED = 1<<7
@@ -17,9 +14,10 @@ struct Timer {
 	uint8_t config;
 	uint32_t interval;
 	int32_t value;
+	int clockSpeed;
 
 	int tickInterval() const {
-		return (config & MODE_512KHZ) ? TICK_INTERVAL_FAST : TICK_INTERVAL_SLOW;
+		return (config & MODE_512KHZ) ? (clockSpeed / 512000) : (clockSpeed / 2000);
 	}
 	void load(uint32_t lval) {
 		interval = lval;
@@ -49,8 +47,33 @@ struct Timer {
 	}
 };
 
+enum UartRegs {
+	UART0DATA = 0x600,
+	UART0FCR = 0x604,
+	UART0LCR = 0x608,
+	UART0CON = 0x60C,
+	UART0FLG = 0x610,
+	UART0INT = 0x614,
+	UART0INTM = 0x618,
+	UART0INTR = 0x61C,
+	UART0TEST1 = 0x620,
+	UART0TEST2 = 0x624,
+	UART0TEST3 = 0x628,
+	UART1DATA = 0x700,
+	UART1FCR = 0x704,
+	UART1LCR = 0x708,
+	UART1CON = 0x70C,
+	UART1FLG = 0x710,
+	UART1INT = 0x714,
+	UART1INTM = 0x718,
+	UART1INTR = 0x71C,
+	UART1TEST1 = 0x720,
+	UART1TEST2 = 0x724,
+	UART1TEST3 = 0x728,
+};
+
 struct UART {
-	ARM710T *cpu;
+	ARM710 *cpu;
 
 	enum {
 		IntRx = 1,

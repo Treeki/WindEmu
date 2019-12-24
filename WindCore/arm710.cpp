@@ -1,4 +1,4 @@
-#include "arm710t.h"
+#include "arm710.h"
 #include "common.h"
 
 // this will need changing if this code ever compiles on big-endian procs
@@ -10,7 +10,7 @@ inline void write32LE(uint8_t *p, uint32_t v) {
 }
 
 
-void ARM710T::switchBank(BankIndex newBank) {
+void ARM710::switchBank(BankIndex newBank) {
 	if (newBank != bank) {
 		// R13 and R14 need saving/loading for all banks
 		allModesBankedRegisters[bank][0] = GPRs[13];
@@ -34,7 +34,7 @@ void ARM710T::switchBank(BankIndex newBank) {
 }
 
 
-void ARM710T::switchMode(Mode newMode) {
+void ARM710::switchMode(Mode newMode) {
 	auto oldMode = currentMode();
 	if (newMode != oldMode) {
 //		log("Switching mode! %x", newMode);
@@ -45,7 +45,7 @@ void ARM710T::switchMode(Mode newMode) {
 	}
 }
 
-void ARM710T::raiseException(Mode mode, uint32_t savedPC, uint32_t newPC) {
+void ARM710::raiseException(Mode mode, uint32_t savedPC, uint32_t newPC) {
 	auto bankIndex = modeToBank[mode & 0xF];
 //	log("Raising exception mode %x, saving PC %08x, CPSR %08x", mode, savedPC, CPSR);
 	SPSRs[bankIndex] = CPSR;
@@ -57,19 +57,19 @@ void ARM710T::raiseException(Mode mode, uint32_t savedPC, uint32_t newPC) {
 	GPRs[15] = newPC;
 }
 
-void ARM710T::requestFIQ() {
+void ARM710::requestFIQ() {
 	raiseException(FIQ32, getRealPC() + 4, 0x1C);
 	CPSR |= CPSR_FIQDisable;
 	CPSR |= CPSR_IRQDisable;
 }
 
-void ARM710T::requestIRQ() {
+void ARM710::requestIRQ() {
 //	log("Requesting IRQ: Last exec = %08x, setting LR = %08x", lastPcExecuted(), getRealPC() + 4);
 	raiseException(IRQ32, getRealPC() + 4, 0x18);
 	CPSR |= CPSR_IRQDisable;
 }
 
-void ARM710T::reset() {
+void ARM710::reset() {
 #ifdef ARM710T_CACHE
 	clearCache();
 #endif
@@ -78,7 +78,7 @@ void ARM710T::reset() {
 
 
 
-uint32_t ARM710T::tick() {
+uint32_t ARM710::tick() {
 	// pop an instruction off the end of the pipeline
 	bool haveInsn = false;
 	uint32_t insn;
@@ -138,7 +138,7 @@ static inline bool extract1(uint32_t value, uint32_t bit) {
 }
 
 
-uint32_t ARM710T::executeInstruction(uint32_t i) {
+uint32_t ARM710::executeInstruction(uint32_t i) {
 	uint32_t cycles = 1;
 //	log("executing insn %08x @ %08x", i, GPRs[15] - 0xC);
 
@@ -169,7 +169,7 @@ uint32_t ARM710T::executeInstruction(uint32_t i) {
 	return cycles;
 }
 
-uint32_t ARM710T::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t Rn, uint32_t Rd, uint32_t Operand2)
+uint32_t ARM710::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t Rn, uint32_t Rd, uint32_t Operand2)
 {
 	uint32_t cycles = 0; // TODO increment me semi-accurately
 	bool shifterCarryOutput;
@@ -381,7 +381,7 @@ uint32_t ARM710T::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 	return cycles;
 }
 
-uint32_t ARM710T::execMultiply(uint32_t AS, uint32_t Rd, uint32_t Rn, uint32_t Rs, uint32_t Rm)
+uint32_t ARM710::execMultiply(uint32_t AS, uint32_t Rd, uint32_t Rn, uint32_t Rs, uint32_t Rm)
 {
 	// no need for R15 fuckery
 	// datasheet says it's not allowed here
@@ -399,7 +399,7 @@ uint32_t ARM710T::execMultiply(uint32_t AS, uint32_t Rd, uint32_t Rn, uint32_t R
 	return 0;
 }
 
-uint32_t ARM710T::execSingleDataSwap(bool B, uint32_t Rn, uint32_t Rd, uint32_t Rm)
+uint32_t ARM710::execSingleDataSwap(bool B, uint32_t Rn, uint32_t Rd, uint32_t Rm)
 {
 	auto valueSize = B ? V8 : V32;
 	auto readResult = readVirtual(GPRs[Rn], valueSize);
@@ -417,7 +417,7 @@ uint32_t ARM710T::execSingleDataSwap(bool B, uint32_t Rn, uint32_t Rd, uint32_t 
 	return 1;
 }
 
-uint32_t ARM710T::execSingleDataTransfer(uint32_t IPUBWL, uint32_t Rn, uint32_t Rd, uint32_t offset)
+uint32_t ARM710::execSingleDataTransfer(uint32_t IPUBWL, uint32_t Rn, uint32_t Rd, uint32_t offset)
 {
 	bool load = extract1(IPUBWL, 0);
 	bool writeback = extract1(IPUBWL, 1);
@@ -501,7 +501,7 @@ uint32_t ARM710T::execSingleDataTransfer(uint32_t IPUBWL, uint32_t Rn, uint32_t 
 	return 2;
 }
 
-uint32_t ARM710T::execBlockDataTransfer(uint32_t PUSWL, uint32_t Rn, uint32_t registerList)
+uint32_t ARM710::execBlockDataTransfer(uint32_t PUSWL, uint32_t Rn, uint32_t registerList)
 {
 	bool load = extract1(PUSWL, 0);
 	bool store = !load;
@@ -586,7 +586,7 @@ uint32_t ARM710T::execBlockDataTransfer(uint32_t PUSWL, uint32_t Rn, uint32_t re
 	return 0; // fixme
 }
 
-uint32_t ARM710T::execBranch(bool L, uint32_t offset)
+uint32_t ARM710::execBranch(bool L, uint32_t offset)
 {
 	if (L)
 		GPRs[14] = GPRs[15] - 8;
@@ -600,7 +600,7 @@ uint32_t ARM710T::execBranch(bool L, uint32_t offset)
 	return 0;
 }
 
-uint32_t ARM710T::execCP15RegisterTransfer(uint32_t CPOpc, bool L, uint32_t CRn, uint32_t Rd, uint32_t CP, uint32_t CRm)
+uint32_t ARM710::execCP15RegisterTransfer(uint32_t CPOpc, bool L, uint32_t CRn, uint32_t Rd, uint32_t CP, uint32_t CRm)
 {
 	(void)CP;
 	(void)CRm;
@@ -630,16 +630,31 @@ uint32_t ARM710T::execCP15RegisterTransfer(uint32_t CPOpc, bool L, uint32_t CRn,
 		case 1: cp15_control = what; log("setting cp15_control to %08x", what); break;
 		case 2: cp15_translationTableBase = what; break;
 		case 3: cp15_domainAccessControl = what; break;
-		case 5: cp15_faultStatus = what; break;
-		case 6: cp15_faultAddress = what; break;
-#ifdef ARM710T_CACHE
-		case 7: clearCache(); log("cache cleared"); break;
-#endif
-		case 8: {
-			if (CPOpc == 1)
-				flushTlb(what);
+		case 5:
+			if (isTVersion)
+				cp15_faultStatus = what;
 			else
 				flushTlb();
+			break;
+		case 6:
+			if (isTVersion)
+				cp15_faultAddress = what;
+			else
+				flushTlb(what);
+			break;
+		case 7:
+#ifdef ARM710T_CACHE
+			clearCache();
+			log("cache cleared");
+#endif
+			break;
+		case 8: {
+			if (isTVersion) {
+				if (CPOpc == 1)
+					flushTlb(what);
+				else
+					flushTlb();
+			}
 			break;
 		}
 		}
@@ -735,7 +750,7 @@ bool ARM710T::writeCached(uint32_t value, uint32_t virtAddr, ValueSize valueSize
 #endif
 
 
-uint32_t ARM710T::physAddrFromTlbEntry(TlbEntry *tlbEntry, uint32_t virtAddr) {
+uint32_t ARM710::physAddrFromTlbEntry(TlbEntry *tlbEntry, uint32_t virtAddr) {
 	if ((tlbEntry->lv2Entry & 3) == 2) {
 		// Smøl page
 		return (tlbEntry->lv2Entry & 0xFFFFF000) | (virtAddr & 0xFFF);
@@ -749,7 +764,7 @@ uint32_t ARM710T::physAddrFromTlbEntry(TlbEntry *tlbEntry, uint32_t virtAddr) {
 }
 
 
-MaybeU32 ARM710T::virtToPhys(uint32_t virtAddr) {
+MaybeU32 ARM710::virtToPhys(uint32_t virtAddr) {
 	if (!isMMUEnabled())
 		return virtAddr;
 
@@ -764,7 +779,7 @@ MaybeU32 ARM710T::virtToPhys(uint32_t virtAddr) {
 }
 
 
-MaybeU32 ARM710T::readVirtualDebug(uint32_t virtAddr, ValueSize valueSize) {
+MaybeU32 ARM710::readVirtualDebug(uint32_t virtAddr, ValueSize valueSize) {
 	if (auto v = virtToPhys(virtAddr); v.has_value())
 		return readPhysical(v.value(), valueSize);
 	else
@@ -772,7 +787,7 @@ MaybeU32 ARM710T::readVirtualDebug(uint32_t virtAddr, ValueSize valueSize) {
 }
 
 
-pair<MaybeU32, ARM710T::MMUFault> ARM710T::readVirtual(uint32_t virtAddr, ValueSize valueSize) {
+pair<MaybeU32, ARM710::MMUFault> ARM710::readVirtual(uint32_t virtAddr, ValueSize valueSize) {
 	if (isAlignmentFaultEnabled() && valueSize == V32 && virtAddr & 3)
 		return make_pair(MaybeU32(), encodeFault(AlignmentFault, 0, virtAddr));
 
@@ -817,7 +832,7 @@ pair<MaybeU32, ARM710T::MMUFault> ARM710T::readVirtual(uint32_t virtAddr, ValueS
 		return make_pair(result, encodeFaultSorP(SorPOtherBusError, isPage, domain, virtAddr));
 }
 
-ARM710T::MMUFault ARM710T::writeVirtual(uint32_t value, uint32_t virtAddr, ValueSize valueSize) {
+ARM710::MMUFault ARM710::writeVirtual(uint32_t value, uint32_t virtAddr, ValueSize valueSize) {
 	if (isAlignmentFaultEnabled() && valueSize == V32 && virtAddr & 3)
 		return encodeFault(AlignmentFault, 0, virtAddr);
 
@@ -854,11 +869,11 @@ ARM710T::MMUFault ARM710T::writeVirtual(uint32_t value, uint32_t virtAddr, Value
 
 
 // TLB
-void ARM710T::flushTlb() {
+void ARM710::flushTlb() {
 	for (TlbEntry &e : tlb)
 		e = {0, 0, 0, 0};
 }
-void ARM710T::flushTlb(uint32_t virtAddr) {
+void ARM710::flushTlb(uint32_t virtAddr) {
 	for (TlbEntry &e : tlb) {
 		if (e.addrMask && (virtAddr & e.addrMask) == e.addr) {
 			e = {0, 0, 0, 0};
@@ -867,7 +882,7 @@ void ARM710T::flushTlb(uint32_t virtAddr) {
 	}
 }
 
-ARM710T::TlbEntry *ARM710T::_allocateTlbEntry(uint32_t addrMask, uint32_t addr) {
+ARM710::TlbEntry *ARM710::_allocateTlbEntry(uint32_t addrMask, uint32_t addr) {
 	TlbEntry *entry = &tlb[nextTlbIndex];
 	entry->addrMask = addrMask;
 	entry->addr = addr & addrMask;
@@ -875,7 +890,7 @@ ARM710T::TlbEntry *ARM710T::_allocateTlbEntry(uint32_t addrMask, uint32_t addr) 
 	return entry;
 }
 
-variant<ARM710T::TlbEntry *, ARM710T::MMUFault> ARM710T::translateAddressUsingTlb(uint32_t virtAddr, TlbEntry *useMe) {
+variant<ARM710::TlbEntry *, ARM710::MMUFault> ARM710::translateAddressUsingTlb(uint32_t virtAddr, TlbEntry *useMe) {
 	// first things first, do we have a matching entry in the TLB?
 	for (TlbEntry &e : tlb) {
 		if (e.addrMask && (virtAddr & e.addrMask) == e.addr)
@@ -942,7 +957,7 @@ variant<ARM710T::TlbEntry *, ARM710T::MMUFault> ARM710T::translateAddressUsingTl
 
 
 
-ARM710T::MMUFault ARM710T::checkAccessPermissions(ARM710T::TlbEntry *entry, uint32_t virtAddr, bool isWrite) const {
+ARM710::MMUFault ARM710::checkAccessPermissions(ARM710::TlbEntry *entry, uint32_t virtAddr, bool isWrite) const {
 	int domain;
 	int accessPerms;
 	bool isPage;
@@ -1013,7 +1028,7 @@ ARM710T::MMUFault ARM710T::checkAccessPermissions(ARM710T::TlbEntry *entry, uint
 }
 
 
-void ARM710T::reportFault(MMUFault fault) {
+void ARM710::reportFault(MMUFault fault) {
 	if (fault != NoFault) {
 		if ((fault & 0xF) != NonMMUError) {
 			cp15_faultStatus = fault & (MMUFaultTypeMask | MMUFaultDomainMask);
@@ -1051,7 +1066,7 @@ void ARM710T::reportFault(MMUFault fault) {
 }
 
 
-void ARM710T::log(const char *format, ...) {
+void ARM710::log(const char *format, ...) {
 	if (logger) {
 		char buffer[1024];
 
@@ -1064,7 +1079,7 @@ void ARM710T::log(const char *format, ...) {
 	}
 }
 
-void ARM710T::logPcHistory() {
+void ARM710::logPcHistory() {
 	for (int i = 0; i < PcHistoryCount; i++) {
 		pcHistoryIndex = (pcHistoryIndex + 1) % PcHistoryCount;
 		log("%03d: %08x %08x", i, pcHistory[pcHistoryIndex].addr, pcHistory[pcHistoryIndex].insn);

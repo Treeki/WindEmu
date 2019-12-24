@@ -23,20 +23,25 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    arm710t.cpp \
+    arm710.cpp \
+    clps7111.cpp \
+    clps7600.cpp \
     etna.cpp \
-    wind.cpp \
     isa-arm.c \
     decoder.c \
     decoder-arm.c \
     arm.c \
-    emu.cpp
+    wind_defs.cpp \
+    windermere.cpp
 
 HEADERS += \
-    arm710t.h \
+    arm710.h \
+    clps7111.h \
+    clps7111_defs.h \
+    clps7600.h \
     etna.h \
-    wind_hw.h \
-    wind.h \
+    hardware.h \
+    wind_defs.h \
     macros.h \
     isa-inlines.h \
     isa-arm.h \
@@ -46,7 +51,7 @@ HEADERS += \
     decoder-inlines.h \
     common.h \
     arm.h \
-    emu.h
+    windermere.h
 unix {
     target.path = /usr/lib
     INSTALLS += target

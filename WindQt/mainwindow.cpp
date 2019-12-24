@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "../WindCore/wind.h"
+#include "../WindCore/clps7111_defs.h"
 #include <QTimer>
 #include <QKeyEvent>
 #include "../WindCore/decoder.h"
@@ -12,8 +12,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 	ui->logView->setMaximumBlockCount(1000);
 
-    emu = new Emu;
-	emu->loadROM("/Users/ash/src/psion/Sys$rom.bin");
+	emu = new CLPS7111;
+	emu->loadROM("/Users/ash/src/psion/Osaris.bin");
 	emu->setLogger([&](const char *str) {
 		ui->logView->appendPlainText(str);
 	});
@@ -91,7 +91,7 @@ void MainWindow::updateScreen()
         struct ARMInstructionInfo info;
         char buffer[512];
 
-		auto result = emu->readVirtual(addr, ARM710T::V32);
+		auto result = emu->readVirtual(addr, ARM710::V32);
 		if (result.first.has_value()) {
 			uint32_t opcode = result.first.value();
 			ARMDecodeARM(opcode, &info);
@@ -104,9 +104,10 @@ void MainWindow::updateScreen()
     // now, the actual screen
     const uint8_t *lcdBuf = emu->getLCDBuffer();
     if (lcdBuf) {
-        QImage img(640, 240, QImage::Format_Grayscale8);
+#if 0
+		QImage img(640, 240, QImage::Format_Grayscale8);
 
-        // fetch palette
+		// fetch palette
         int bpp = 1 << (lcdBuf[1] >> 4);
         int ppb = 8 / bpp;
         uint16_t palette[16];
@@ -129,6 +130,37 @@ void MainWindow::updateScreen()
 				scanline[x] = palValue ^ 0xFF;
             }
         }
+#else
+		QImage img(320, 200, QImage::Format_Grayscale8);
+
+		uint32_t lcdControl = emu->getLCDControl();
+		uint64_t lcdPalette = emu->getLCDPalette();
+		int bpp = 1;
+		if (lcdControl & 0x40000000) bpp = 2;
+		if (lcdControl & 0x80000000) bpp = 4;
+		int ppb = 8 / bpp;
+
+		// build our image out
+		int lineWidth = (img.width() * bpp) / 8;
+		for (int y = 0; y < img.height(); y++) {
+			uint8_t *scanline = img.scanLine(y);
+			int lineOffs = lineWidth * y;
+			for (int x = 0; x < img.width(); x++) {
+				uint8_t byte = lcdBuf[lineOffs + (x / ppb)];
+				int shift = (x & (ppb - 1)) * bpp;
+				int mask = (1 << bpp) - 1;
+				int palIdx = (byte >> shift) & mask;
+				int palValue;
+				if (bpp == 1)
+					palValue = palIdx * 255;
+				else
+					palValue = (lcdPalette >> (palIdx * 4)) & 0xF;
+
+				palValue |= (palValue << 4);
+				scanline[x] = palValue ^ 0xFF;
+			}
+		}
+#endif
 
         ui->screen->setPixmap(QPixmap::fromImage(std::move(img)));
     }
@@ -252,7 +284,7 @@ void MainWindow::on_stopButton_clicked()
 void MainWindow::on_stepTickButton_clicked()
 {
 //    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED * 2));
-	emu->executeUntil(emu->currentCycles() + 2500000);
+	emu->executeUntil(emu->currentCycles() + 25000000);
 	updateScreen();
 }
 
@@ -307,7 +339,7 @@ void MainWindow::updateMemory()
 	uint8_t block[0x100];
 	if (ok) {
 		for (int i = 0; i < 0x100; i++) {
-			block[i] = emu->readPhysical(physBase + i, ARM710T::V8).value();
+			block[i] = emu->readPhysical(physBase + i, ARM710::V8).value();
 		}
 	}
 
@@ -358,7 +390,7 @@ void MainWindow::on_writeByteButton_clicked()
 {
 	uint32_t address = ui->memoryViewAddress->text().toUInt(nullptr, 16);
 	uint8_t value = (uint8_t)ui->memoryWriteValue->text().toUInt(nullptr, 16);
-	emu->writeVirtual(value, address, ARM710T::V8);
+	emu->writeVirtual(value, address, ARM710::V8);
 	updateMemory();
 }
 
@@ -366,6 +398,6 @@ void MainWindow::on_writeDwordButton_clicked()
 {
 	uint32_t address = ui->memoryViewAddress->text().toUInt(nullptr, 16);
 	uint32_t value = ui->memoryWriteValue->text().toUInt(nullptr, 16);
-	emu->writeVirtual(value, address, ARM710T::V32);
+	emu->writeVirtual(value, address, ARM710::V32);
 	updateMemory();
 }

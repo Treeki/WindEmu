@@ -21,7 +21,7 @@ using namespace std;
 
 typedef optional<uint32_t> MaybeU32;
 
-class ARM710T
+class ARM710
 {
 public:
 	enum ValueSize { V8 = 0, V32 = 1 };
@@ -57,11 +57,12 @@ public:
 
 
 
-	ARM710T() {
-		cp15_id = 0x41807100;
+	ARM710(bool _isTVersion) {
+		isTVersion = _isTVersion;
+		cp15_id = _isTVersion ? 0x41807100 : 0x41047100;
 		clearAllValues();
 	}
-	virtual ~ARM710T() { }
+	virtual ~ARM710() { }
 
 	void clearAllValues() {
 		bank = MainBank;
@@ -104,8 +105,8 @@ public:
 
 	pair<MaybeU32, MMUFault> readVirtual(uint32_t virtAddr, ValueSize valueSize);
 	virtual MaybeU32 readPhysical(uint32_t physAddr, ValueSize valueSize) = 0;
-	MMUFault writeVirtual(uint32_t value, uint32_t virtAddr, ARM710T::ValueSize valueSize);
-	virtual bool writePhysical(uint32_t value, uint32_t physAddr, ARM710T::ValueSize valueSize) = 0;
+	MMUFault writeVirtual(uint32_t value, uint32_t virtAddr, ARM710::ValueSize valueSize);
+	virtual bool writePhysical(uint32_t value, uint32_t physAddr, ARM710::ValueSize valueSize) = 0;
 
 	uint32_t getGPR(int index) const { return GPRs[index]; }
 	uint32_t getCPSR() const { return CPSR; }
@@ -115,7 +116,7 @@ public:
 
 	void setLogger(std::function<void(const char *)> newLogger) { logger = newLogger; }
 	uint32_t lastPcExecuted() const { return pcHistory[(pcHistoryIndex - 1) % PcHistoryCount].addr; }
-protected:
+public:
 	void log(const char *format, ...);
 	void logPcHistory();
 private:
@@ -180,6 +181,8 @@ private:
 	uint32_t cp15_domainAccessControl;  // 3: write-only
 	uint8_t  cp15_faultStatus;          // 5: read-only (writing has unrelated effects)
 	uint32_t cp15_faultAddress;         // 6: read-only (writing has unrelated effects)
+
+	bool isTVersion;
 
 	bool flagV() const { return CPSR & CPSR_V; }
 	bool flagC() const { return CPSR & CPSR_C; }

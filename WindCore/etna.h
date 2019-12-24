@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-class Emu;
+class ARM710;
 
 class Etna {
     uint8_t prom[0x80] = {};
@@ -12,10 +12,10 @@ class Etna {
     uint8_t pendingInterrupts = 0, interruptMask = 0;
     uint8_t wake1 = 0, wake2 = 0;
 
-    Emu *owner;
+	ARM710 *owner;
 
 public:
-    Etna(Emu *owner);
+	Etna(ARM710 *owner);
 
     uint32_t readReg8(uint32_t reg);
     uint32_t readReg32(uint32_t reg);

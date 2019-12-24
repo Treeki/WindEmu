@@ -1,8 +1,10 @@
 #pragma once
 #include <stdint.h>
 
-const int CLOCK_SPEED = 0x9000*1000;
-const int TICK_INTERVAL = CLOCK_SPEED / 64;
+enum {
+	CLOCK_SPEED = 0x9000*1000,
+	TICK_INTERVAL = CLOCK_SPEED / 64
+};
 
 enum Interrupt {
 	EXTFIQ = 0,  // FiqExternal
@@ -50,28 +52,6 @@ enum WindermereReg {
 	INTENC = 0x50C,
 	INTTEST1 = 0x514,
 	INTTEST2 = 0x518,
-	UART0DATA = 0x600,
-	UART0FCR = 0x604,
-	UART0LCR = 0x608,
-	UART0CON = 0x60C,
-	UART0FLG = 0x610,
-	UART0INT = 0x614,
-	UART0INTM = 0x618,
-	UART0INTR = 0x61C,
-	UART0TEST1 = 0x620,
-	UART0TEST2 = 0x624,
-	UART0TEST3 = 0x628,
-	UART1DATA = 0x700,
-	UART1FCR = 0x704,
-	UART1LCR = 0x708,
-	UART1CON = 0x70C,
-	UART1FLG = 0x710,
-	UART1INT = 0x714,
-	UART1INTM = 0x718,
-	UART1INTR = 0x71C,
-	UART1TEST1 = 0x720,
-	UART1TEST2 = 0x724,
-	UART1TEST3 = 0x728,
 	PUMPCON = 0x900,
 	CODR = 0xA00,
 	CONFG = 0xA04,
@@ -110,5 +90,5 @@ enum WindermereReg {
 	LCDMUX = 0xE2C
 };
 
-void diffPorts(uint32_t oldval, uint32_t newval);
-void diffInterrupts(uint16_t oldval, uint16_t newval);
+void windDiffPorts(uint32_t oldval, uint32_t newval);
+void windDiffInterrupts(uint16_t oldval, uint16_t newval);

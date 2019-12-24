@@ -1,7 +1,7 @@
-#include "wind.h"
+#include "wind_defs.h"
 #include <stdio.h>
 
-void diffPorts(uint32_t oldval, uint32_t newval) {
+void windDiffPorts(uint32_t oldval, uint32_t newval) {
 	uint32_t changes = oldval ^ newval;
 	if (changes & 1) printf("PRT codec enable: %d\n", newval&1);
 	if (changes & 2) printf("PRT audio amp enable: %d\n", newval&2);
@@ -37,7 +37,7 @@ void diffPorts(uint32_t oldval, uint32_t newval) {
 	if (changes & 0x80000000) printf("PRT kb7: %d\n", newval&0x80000000);
 }
 
-void diffInterrupts(uint16_t oldval, uint16_t newval) {
+void windDiffInterrupts(uint16_t oldval, uint16_t newval) {
 	uint16_t changes = oldval ^ newval;
 	if (changes & 1) printf("INTCHG external=%d\n", newval & 1);
 	if (changes & 2) printf("INTCHG lowbat=%d\n", newval & 2);
