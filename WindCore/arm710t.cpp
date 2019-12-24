@@ -37,6 +37,7 @@ void ARM710T::switchBank(BankIndex newBank) {
 void ARM710T::switchMode(Mode newMode) {
 	auto oldMode = currentMode();
 	if (newMode != oldMode) {
+//		log("Switching mode! %x", newMode);
 		switchBank(modeToBank[newMode & 0xF]);
 
 		CPSR &= ~CPSR_ModeMask;
@@ -46,6 +47,7 @@ void ARM710T::switchMode(Mode newMode) {
 
 void ARM710T::raiseException(Mode mode, uint32_t savedPC, uint32_t newPC) {
 	auto bankIndex = modeToBank[mode & 0xF];
+//	log("Raising exception mode %x, saving PC %08x, CPSR %08x", mode, savedPC, CPSR);
 	SPSRs[bankIndex] = CPSR;
 
 	switchMode(mode);
@@ -56,13 +58,14 @@ void ARM710T::raiseException(Mode mode, uint32_t savedPC, uint32_t newPC) {
 }
 
 void ARM710T::requestFIQ() {
-	raiseException(FIQ32, GPRs[15], 0x1C);
+	raiseException(FIQ32, getRealPC() + 4, 0x1C);
 	CPSR |= CPSR_FIQDisable;
 	CPSR |= CPSR_IRQDisable;
 }
 
 void ARM710T::requestIRQ() {
-	raiseException(FIQ32, GPRs[15], 0x18);
+//	log("Requesting IRQ: Last exec = %08x, setting LR = %08x", lastPcExecuted(), getRealPC() + 4);
+	raiseException(IRQ32, getRealPC() + 4, 0x18);
 	CPSR |= CPSR_IRQDisable;
 }
 
@@ -92,14 +95,6 @@ uint32_t ARM710T::tick() {
 
 	// fetch a new instruction
 	auto newInsn = readVirtual(GPRs[15], V32);
-	if (GPRs[15] < 0x10 || GPRs[15] > 0xA0000000) {
-		log("HACK HACK HACK 2");
-		log("PC=%08x LR=%08x", GPRs[15], GPRs[14]);
-	}
-//	if (GPRs[15] == 0x50100000) {
-//		log("HACK HACK HACK");
-//		log("LR=%08x", GPRs[14]);
-//	}
 	GPRs[15] += 4;
 	prefetch[0] = newInsn.first.value_or(0);
 	prefetchFaults[0] = newInsn.second;
@@ -109,10 +104,13 @@ uint32_t ARM710T::tick() {
 	// now deal with the one we popped
 	uint32_t clocks = 1;
 	if (haveInsn) {
+		pcHistory[pcHistoryIndex] = {GPRs[15] - 0xC, insn};
+		pcHistoryIndex = (pcHistoryIndex + 1) % PcHistoryCount;
 		if (insnFault != NoFault) {
 			// Raise a prefetch error
 			// These do not set FSR or FAR
 			log("prefetch error! %08x", insnFault >> MMUFaultAddressShift);
+			logPcHistory();
 			raiseException(Abort32, GPRs[15] - 8, 0xC);
 		} else {
 			clocks += executeInstruction(insn);
@@ -370,7 +368,7 @@ uint32_t ARM710T::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t R
 				auto saved = SPSRs[currentBank()];
 				switchMode(modeFromCPSR(saved));
 				CPSR = saved;
-//				log("dataproc restore CPSR: %08x", CPSR);
+//				log("dataproc restore CPSR: %08x", saved);
 			}
 		} else if (S) {
 			CPSR = (CPSR & ~CPSR_FlagMask) | flags;
@@ -562,16 +560,23 @@ uint32_t ARM710T::execBlockDataTransfer(uint32_t PUSWL, uint32_t Rn, uint32_t re
 		}
 	}
 
-	if (registerList & 0x8000)
-		prefetchCount = 0;
-
 	// datasheet specifies that base register must be
 	// restored if an error occurs during LDM
 	if (load && fault != NoFault)
 		GPRs[Rn] = writeback ? updatedBase : base;
 
-	if (psrForceUser && (!load || !(registerList & 0x8000)))
+	if (psrForceUser && (store || !(registerList & 0x8000)))
 		switchBank(saveBank);
+
+	if (load && (registerList & 0x8000)) {
+		prefetchCount = 0;
+		if (psrForceUser && isPrivileged() && fault == NoFault) {
+			auto saved = SPSRs[currentBank()];
+			switchMode(modeFromCPSR(saved));
+			CPSR = saved;
+//			log("reloading saved SPSR: %08x", saved);
+		}
+	}
 
 	if (fault != NoFault)
 		reportFault(fault);
@@ -1046,13 +1051,9 @@ void ARM710T::log(const char *format, ...) {
 	}
 }
 
-
-void ARM710T::test() {
-	uint64_t result;
-	uint32_t flags = 0;
-	uint32_t v = 0x10000000;
-
-	SUB_OP(v, v, 1);
-
-	log("RESULT:%llx FLAGS:%08x", result, flags);
+void ARM710T::logPcHistory() {
+	for (int i = 0; i < PcHistoryCount; i++) {
+		pcHistoryIndex = (pcHistoryIndex + 1) % PcHistoryCount;
+		log("%03d: %08x %08x", i, pcHistory[pcHistoryIndex].addr, pcHistory[pcHistoryIndex].insn);
+	}
 }

@@ -17,7 +17,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	emu->setLogger([&](const char *str) {
 		ui->logView->appendPlainText(str);
 	});
-	emu->test();
 
     timer = new QTimer(this);
     timer->setInterval(1000/64);

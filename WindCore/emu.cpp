@@ -315,6 +315,8 @@ void Emu::configure() {
 	if (configured) return;
 	configured = true;
 
+	srand(1000);
+
 	uart1.cpu = this;
 	uart2.cpu = this;
 	memset(&tc1, 0, sizeof(tc1));
@@ -375,6 +377,11 @@ void Emu::executeUntil(int64_t cycles) {
 			uint32_t new_pc = getGPR(15) - 0xC;
 			if (_breakpoints.find(new_pc) != _breakpoints.end()) {
 				log("⚠️ Breakpoint triggered at %08x!", new_pc);
+				return;
+			}
+			if (new_pc >= 0x80000000 && new_pc <= 0x90000000) {
+				log("BAD PC %08x!!", new_pc);
+				logPcHistory();
 				return;
 			}
 		}

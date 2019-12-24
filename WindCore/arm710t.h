@@ -21,8 +21,6 @@ typedef optional<uint32_t> MaybeU32;
 class ARM710T
 {
 public:
-	void test();
-
 	enum ValueSize { V8 = 0, V32 = 1 };
 
 	enum MMUFault : uint64_t {
@@ -106,12 +104,21 @@ public:
 
 	uint32_t getGPR(int index) const { return GPRs[index]; }
 	uint32_t getCPSR() const { return CPSR; }
+	uint32_t getRealPC() const {
+		return GPRs[15] - (4 * prefetchCount);
+	}
 
 	void setLogger(std::function<void(const char *)> newLogger) { logger = newLogger; }
+	uint32_t lastPcExecuted() const { return pcHistory[(pcHistoryIndex - 1) % PcHistoryCount].addr; }
 protected:
 	void log(const char *format, ...);
+	void logPcHistory();
 private:
 	std::function<void(const char *)> logger;
+
+	enum { PcHistoryCount = 10 };
+	struct { uint32_t addr, insn; } pcHistory[PcHistoryCount];
+	uint32_t pcHistoryIndex = 0;
 
 	enum { Nop = 0xE1A00000 };
 
