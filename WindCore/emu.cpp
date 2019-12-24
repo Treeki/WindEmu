@@ -5,7 +5,8 @@
 #include "common.h"
 
 
-#define INCLUDE_BANK1
+//#define INCLUDE_D
+//#define INCLUDE_BANK1
 
 Emu::Emu() : etna(this) {
 }
@@ -214,17 +215,23 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 			return etna.readReg8(physAddr & 0xFFF);
 		else if (region == 0x80 && physAddr <= 0x80000FFF)
 			return readReg8(physAddr & 0xFFF);
+#if defined(INCLUDE_BANK1)
 		else if (region == 0xC0)
 			return MemoryBlockC0[physAddr & MemoryBlockMask];
-#ifdef INCLUDE_BANK1
 		else if (region == 0xC1)
 			return MemoryBlockC1[physAddr & MemoryBlockMask];
-#endif
 		else if (region == 0xD0)
 			return MemoryBlockD0[physAddr & MemoryBlockMask];
-#ifdef INCLUDE_BANK1
 		else if (region == 0xD1)
 			return MemoryBlockD1[physAddr & MemoryBlockMask];
+#elif defined(INCLUDE_D)
+		else if (region == 0xC0 || region == 0xC1)
+			return MemoryBlockC0[physAddr & MemoryBlockMask];
+		else if (region == 0xD0 || region == 0xD1)
+			return MemoryBlockD0[physAddr & MemoryBlockMask];
+#else
+		else if (region == 0xC0 || region == 0xC1 || region == 0xD0 || region == 0xD1)
+			return MemoryBlockC0[physAddr & MemoryBlockMask];
 #endif
 		else if (region >= 0xC0)
 			return 0xFF; // just throw accesses to unmapped RAM away
@@ -238,17 +245,23 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 			result = etna.readReg32(physAddr & 0xFFF);
 		else if (region == 0x80 && physAddr <= 0x80000FFF)
 			result = readReg32(physAddr & 0xFFF);
+#if defined(INCLUDE_BANK1)
 		else if (region == 0xC0)
 			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockC0);
-#ifdef INCLUDE_BANK1
 		else if (region == 0xC1)
 			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockC1);
-#endif
 		else if (region == 0xD0)
 			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockD0);
-#ifdef INCLUDE_BANK1
 		else if (region == 0xD1)
 			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockD1);
+#elif defined(INCLUDE_D)
+		else if (region == 0xC0 || region == 0xC1)
+			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockC0);
+		else if (region == 0xD0 || region == 0xD1)
+			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockD0);
+#else
+		else if (region == 0xC0 || region == 0xC1 || region == 0xD0 || region == 0xD1)
+			LOAD_32LE(result, physAddr & MemoryBlockMask, MemoryBlockC0);
 #endif
 		else if (region >= 0xC0)
 			return 0xFFFFFFFF; // just throw accesses to unmapped RAM away
@@ -263,17 +276,23 @@ MaybeU32 Emu::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 bool Emu::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) {
 	uint8_t region = (physAddr >> 24) & 0xF1;
 	if (valueSize == V8) {
+#if defined(INCLUDE_BANK1)
 		if (region == 0xC0)
 			MemoryBlockC0[physAddr & MemoryBlockMask] = (uint8_t)value;
-#ifdef INCLUDE_BANK1
 		else if (region == 0xC1)
 			MemoryBlockC1[physAddr & MemoryBlockMask] = (uint8_t)value;
-#endif
 		else if (region == 0xD0)
 			MemoryBlockD0[physAddr & MemoryBlockMask] = (uint8_t)value;
-#ifdef INCLUDE_BANK1
 		else if (region == 0xD1)
 			MemoryBlockD1[physAddr & MemoryBlockMask] = (uint8_t)value;
+#elif defined(INCLUDE_D)
+		if (region == 0xC0 || region == 0xC1)
+			MemoryBlockC0[physAddr & MemoryBlockMask] = (uint8_t)value;
+		else if (region == 0xD0 || region == 0xD1)
+			MemoryBlockD0[physAddr & MemoryBlockMask] = (uint8_t)value;
+#else
+		if (region == 0xC0 || region == 0xC1 || region == 0xD0 || region == 0xD1)
+			MemoryBlockC0[physAddr & MemoryBlockMask] = (uint8_t)value;
 #endif
 		else if (region >= 0xC0)
 			return true; // just throw accesses to unmapped RAM away
@@ -285,17 +304,23 @@ bool Emu::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) 
 			return false;
 	} else {
 		uint8_t region = (physAddr >> 24) & 0xF1;
+#if defined(INCLUDE_BANK1)
 		if (region == 0xC0)
 			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockC0);
-#ifdef INCLUDE_BANK1
 		else if (region == 0xC1)
 			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockC1);
-#endif
 		else if (region == 0xD0)
 			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockD0);
-#ifdef INCLUDE_BANK1
 		else if (region == 0xD1)
 			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockD1);
+#elif defined(INCLUDE_D)
+		if (region == 0xC0 || region == 0xC1)
+			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockC0);
+		else if (region == 0xD0 || region == 0xD1)
+			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockD0);
+#else
+		if (region == 0xC0 || region == 0xC1 || region == 0xD0 || region == 0x01)
+			STORE_32LE(value, physAddr & MemoryBlockMask, MemoryBlockC0);
 #endif
 		else if (region >= 0xC0)
 			return true; // just throw accesses to unmapped RAM away
