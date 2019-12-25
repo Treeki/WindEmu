@@ -62,7 +62,79 @@ void PDAScreenWindow::updateScreen() {
 	lcd->setPixmap(QPixmap::fromImage(std::move(img)));
 }
 
+#ifdef Q_OS_MAC
+static EpocKey resolveKey(int key, int vk) {
+	// Although Cocoa/Carbon's virtual keycodes include
+	// modifiers, Qt doesn't expose them through QKeyEvent...
+	switch (key) {
+	case Qt::Key_Control: return EStdKeyLeftFunc;
+	case Qt::Key_Shift: return EStdKeyLeftShift;
+	case Qt::Key_Alt: return EStdKeyMenu;
+	case Qt::Key_Meta: return EStdKeyLeftCtrl;
+	}
+
+	// https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.6.sdk/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/Headers/Events.h#L182
+	switch (vk) {
+	case 0x00: return (EpocKey)'A';
+	case 0x01: return (EpocKey)'S';
+	case 0x02: return (EpocKey)'D';
+	case 0x03: return (EpocKey)'F';
+	case 0x04: return (EpocKey)'H';
+	case 0x05: return (EpocKey)'G';
+	case 0x06: return (EpocKey)'Z';
+	case 0x07: return (EpocKey)'X';
+	case 0x08: return (EpocKey)'C';
+	case 0x09: return (EpocKey)'V';
+	case 0x0B: return (EpocKey)'B';
+	case 0x0C: return (EpocKey)'Q';
+	case 0x0D: return (EpocKey)'W';
+	case 0x0E: return (EpocKey)'E';
+	case 0x0F: return (EpocKey)'R';
+
+	case 0x10: return (EpocKey)'Y';
+	case 0x11: return (EpocKey)'T';
+	case 0x12: return (EpocKey)'1';
+	case 0x13: return (EpocKey)'2';
+	case 0x14: return (EpocKey)'3';
+	case 0x15: return (EpocKey)'4';
+	case 0x16: return (EpocKey)'6';
+	case 0x17: return (EpocKey)'5';
+	case 0x19: return (EpocKey)'9';
+	case 0x1A: return (EpocKey)'7';
+	case 0x1C: return (EpocKey)'8';
+	case 0x1D: return (EpocKey)'0';
+	case 0x1F: return (EpocKey)'O';
+
+	case 0x20: return (EpocKey)'U';
+	case 0x22: return (EpocKey)'I';
+	case 0x23: return (EpocKey)'P';
+	case 0x24: return EStdKeyEnter;
+	case 0x25: return (EpocKey)'L';
+	case 0x26: return (EpocKey)'J';
+	case 0x27: return EStdKeySingleQuote;
+	case 0x28: return (EpocKey)'K';
+	case 0x2B: return EStdKeyComma;
+	case 0x2D: return (EpocKey)'N';
+	case 0x2E: return (EpocKey)'M';
+	case 0x2F: return EStdKeyFullStop;
+
+	case 0x30: return EStdKeyTab;
+	case 0x31: return EStdKeySpace;
+	case 0x33: return EStdKeyBackspace;
+	case 0x35: return EStdKeyEscape;
+
+	case 0x7B: return EStdKeyLeftArrow;
+	case 0x7C: return EStdKeyRightArrow;
+	case 0x7D: return EStdKeyDownArrow;
+	case 0x7E: return EStdKeyUpArrow;
+	}
+
+	return EStdKeyNull;
+}
+#else
+#error "Unsupported platform (for now! fix me in pdascreenwindow.cpp)"
 static EpocKey resolveKey(int key) {
+	// Placeholder, doesn't work for all keys
 	switch (key) {
 	case Qt::Key_Apostrophe: return EStdKeySingleQuote;
 	case Qt::Key_Backspace: return EStdKeyBackspace;
@@ -95,18 +167,20 @@ static EpocKey resolveKey(int key) {
 	if (key >= 'A' && key <= 'Z') return (EpocKey)key;
 	return EStdKeyNull;
 }
+#endif
 
 
 void PDAScreenWindow::keyPressEvent(QKeyEvent *event)
 {
-	EpocKey k = resolveKey(event->key());
+	emu->log("KeyPress: QtKey=%d nativeVirtualKey=%x nativeModifiers=%x", event->key(), event->nativeVirtualKey(), event->nativeModifiers());
+	EpocKey k = resolveKey(event->key(), event->nativeVirtualKey());
 	if (k != EStdKeyNull)
 		emu->setKeyboardKey(k, true);
 }
 
 void PDAScreenWindow::keyReleaseEvent(QKeyEvent *event)
 {
-	EpocKey k = resolveKey(event->key());
+	EpocKey k = resolveKey(event->key(), event->nativeVirtualKey());
 	if (k != EStdKeyNull)
 		emu->setKeyboardKey(k, false);
 }

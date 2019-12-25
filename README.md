@@ -7,7 +7,7 @@ WindEmu is an attempt to emulate various Psion PDAs.
 
 Psion 5mx (EPOC R5) features:
 
-- ✅ LCD: partially implemented
+- ✅ LCD: implemented
 - ✅ Keyboard: implemented
 - ✅ Touch panel: implemented
 - ❌ Audio: not implemented
@@ -20,7 +20,7 @@ Psion 5mx (EPOC R5) features:
 Oregon Scientific Osaris (EPOC R4) features:
 
 - ✅ LCD: implemented
-- ✅ Keyboard: implemented (somewhat buggy)
+- ✅ Keyboard: implemented
 - ✅ Touch panel: implemented
 - ❌ Audio: not implemented
 - ❌ Serial/UART support: stubbed out
@@ -31,7 +31,6 @@ Oregon Scientific Osaris (EPOC R4) features:
 
 Known issues:
 
-- Some keys do not work properly
 - State is not saved (just like a real Psion :p)
 - EPOC misbehaves massively with memory banks larger than 0x800000 (may be an OS design flaw? need to confirm)
 
