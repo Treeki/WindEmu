@@ -79,14 +79,14 @@ Etna::Etna(ARM710 *owner) {
         chk ^= prom[i];
 
     // EPOC is expecting 66
-    prom[0x7F] = chk ^ 66;
+	prom[0x7F] = chk ^ 66;
 }
 
 
 uint32_t Etna::readReg8(uint32_t reg)
 {
-    if (!promReadActive)
-        printf("ETNA readReg8: reg=%s @ pc=%08x,lr=%08x\n", nameReg(reg), owner->getGPR(15) - 4, owner->getGPR(14));
+//    if (!promReadActive)
+//		owner->log("ETNA readReg8: reg=%s @ pc=%08x,lr=%08x", nameReg(reg), owner->getGPR(15) - 4, owner->getGPR(14));
     switch (reg) {
     case regIntClear: return 0;
     case regSktVarA0: return 1; // will store some status flags
@@ -100,14 +100,14 @@ uint32_t Etna::readReg8(uint32_t reg)
 uint32_t Etna::readReg32(uint32_t reg)
 {
     // may be able to remove this, p. sure Etna is byte addressing only
-    printf("ETNA readReg32: reg=%x\n", reg);
+	owner->log("ETNA readReg32: reg=%x", reg);
     return 0xFFFFFFFF;
 }
 
 void Etna::writeReg8(uint32_t reg, uint8_t value)
 {
     if (!promReadActive)
-        printf("ETNA writeReg8: reg=%s value=%02x @ pc=%08x,lr=%08x\n", nameReg(reg), value, owner->getGPR(15) - 4, owner->getGPR(14));
+		owner->log("ETNA writeReg8: reg=%s value=%02x @ pc=%08x,lr=%08x", nameReg(reg), value, owner->getGPR(15) - 4, owner->getGPR(14));
     switch (reg) {
     case regIntClear: pendingInterrupts &= ~value; break;
     case regWake1: wake1 = value; break;
@@ -118,7 +118,7 @@ void Etna::writeReg8(uint32_t reg, uint8_t value)
 void Etna::writeReg32(uint32_t reg, uint32_t value)
 {
     // may be able to remove this, p. sure Etna is byte addressing only
-    printf("ETNA writeReg32: reg=%x value=%08x\n", reg, value);
+	owner->log("ETNA writeReg32: reg=%x value=%08x", reg, value);
 }
 
 void Etna::setPromBit0High()

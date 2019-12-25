@@ -287,6 +287,7 @@ private:
 
 	uint32_t execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t Rn, uint32_t Rd, uint32_t Operand2);
 	uint32_t execMultiply(uint32_t AS, uint32_t Rd, uint32_t Rn, uint32_t Rs, uint32_t Rm);
+	uint32_t execMultiplyLong(uint32_t UAS, uint32_t RdHi, uint32_t RdLo, uint32_t Rs, uint32_t Rm);
 	uint32_t execSingleDataSwap(bool B, uint32_t Rn, uint32_t Rd, uint32_t Rm);
 	uint32_t execSingleDataTransfer(uint32_t IPUBWL, uint32_t Rn, uint32_t Rd, uint32_t offset);
 	uint32_t execBlockDataTransfer(uint32_t PUSWL, uint32_t Rn, uint32_t registerList);

@@ -76,10 +76,8 @@ uint32_t Emulator::readReg32(uint32_t reg) {
 		// as per 5000A7B0 in 5mx rom
 		uint16_t ssiValue = 0;
 		switch (lastSSIRequest) {
-//		case 0x9093: ssiValue = (uint16_t)(1156 - (touchY * 3.96)); break;
-//		case 0xD0D3: ssiValue = (uint16_t)(2819 - (touchX * 3.91)); break;
-		case 0x9093: ssiValue = (uint16_t)(1156 - (touchY * 3.96)); break;
-		case 0xD0D3: ssiValue = (uint16_t)(1276 + (touchX * 3.91)); break;
+		case 0xD0D3: ssiValue = (uint16_t)(50 + (touchX * 5.7)); break;
+		case 0x9093: ssiValue = (uint16_t)(3834 - (touchY * 13.225)); break;
 		case 0xA4A4: ssiValue = 3100; break; // MainBattery
 		case 0xE4E4: ssiValue = 3100; break; // BackupBattery
 		}
@@ -97,11 +95,11 @@ uint32_t Emulator::readReg32(uint32_t reg) {
 		return 0;
     } else if (reg == RTCDRL) {
         uint16_t v = rtc & 0xFFFF;
-//        printf("RTCDRL: %04x\n", v);
+//		log("RTCDRL: %04x", v);
         return v;
     } else if (reg == RTCDRU) {
         uint16_t v = rtc >> 16;
-//        printf("RTCDRU: %04x\n", v);
+//		log("RTCDRU: %04x", v);
         return v;
     } else if (reg == KSCAN) {
         return kScan;
@@ -207,6 +205,14 @@ void Emulator::writeReg32(uint32_t reg, uint32_t value) {
 		tc2.load(value);
 	} else if (reg == TC2EOI) {
 		pendingInterrupts &= ~(1 << TC2OI);
+	} else if (reg == RTCDRL) {
+		rtc &= 0xFFFF0000;
+		rtc |= (value & 0xFFFF);
+		log("RTC write lower: %04x", value);
+	} else if (reg == RTCDRU) {
+		rtc &= 0x0000FFFF;
+		rtc |= (value & 0xFFFF) << 16;
+		log("RTC write upper: %04x", value);
 	} else {
 //		printf("RegWrite32 unknown:: pc=%08x reg=%03x value=%08x\n", getGPR(15)-4, reg, value);
 	}
@@ -523,7 +529,7 @@ void Emulator::debugPC(uint32_t pc) {
 		case 15: n = "EButton3Up"; break;
 		case 16: n = "ESwitchOff"; break;
 		}
-		log("EVENT %s: tick=%d params=%08x,%08x", n, evtTick, evtParamA, evtParamB);
+		log("EVENT %s: tick=%d params=%d,%d", n, evtTick, evtParamA, evtParamB);
 	}
 }
 

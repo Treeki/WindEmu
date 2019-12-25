@@ -9,7 +9,7 @@ Psion 5mx (EPOC R5) features:
 
 - ✅ LCD: partially implemented
 - ✅ Keyboard: implemented
-- ❌ Touch panel: not implemented
+- ✅ Touch panel: implemented
 - ❌ Audio: not implemented
 - ❌ Serial/UART support: stubbed out
 - ❌ ETNA (PCMCIA/CompactFlash): mostly stubbed out
@@ -20,7 +20,7 @@ Psion 5mx (EPOC R5) features:
 Oregon Scientific Osaris (EPOC R4) features:
 
 - ✅ LCD: implemented
-- ✅ Keyboard: mostly implemented (key mappings wrong)
+- ✅ Keyboard: implemented (somewhat buggy)
 - ✅ Touch panel: implemented
 - ❌ Audio: not implemented
 - ❌ Serial/UART support: stubbed out

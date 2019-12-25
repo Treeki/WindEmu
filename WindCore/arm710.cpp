@@ -161,6 +161,8 @@ uint32_t ARM710::executeInstruction(uint32_t i) {
 		cycles += execSingleDataSwap(extract1(i,22), extract(i,19,16), extract(i,15,12), extract(i,3,0));
 	else if ((i & 0x0F8000F0) == 0x00000090)
 		cycles += execMultiply(extract(i,21,20), extract(i,19,16), extract(i,15,12), extract(i,11,8), extract(i,3,0));
+	else if ((i & 0x0F8000F0) == 0x00800090 && isTVersion)
+		cycles += execMultiplyLong(extract(i,22,20), extract(i,19,16), extract(i,15,12), extract(i,11,8), extract(i,3,0));
 	else if ((i & 0x0C000000) == 0x00000000)
 		cycles += execDataProcessing(extract1(i,25), extract(i,24,21), extract1(i,20), extract(i,19,16), extract(i,15,12), extract(i,11,0));
 	else
@@ -395,6 +397,35 @@ uint32_t ARM710::execMultiply(uint32_t AS, uint32_t Rd, uint32_t Rn, uint32_t Rs
 		CPSR |= GPRs[Rd] ? 0 : CPSR_Z;
 		CPSR |= (GPRs[Rd] & 0x80000000) ? CPSR_N : 0;
 	}
+
+	return 0;
+}
+
+// ARM710T only!
+uint32_t ARM710::execMultiplyLong(uint32_t UAS, uint32_t RdHi, uint32_t RdLo, uint32_t Rs, uint32_t Rm)
+{
+	// no need for R15 fuckery
+	// datasheet says it's not allowed here
+	uint64_t result;
+	if (UAS & 4) // unsigned
+		result = (uint64_t)GPRs[Rm] * (uint64_t)GPRs[Rs];
+	else // signed
+		result = (uint64_t)((int64_t)GPRs[Rm] * (int64_t)GPRs[Rs]);
+
+	if (UAS & 2) {
+		// accumulate
+		uint64_t addend = (uint64_t)GPRs[RdLo] | ((uint64_t)GPRs[RdHi] << 32);
+		result += addend;
+	}
+
+	if (UAS & 1) {
+		CPSR &= ~(CPSR_N | CPSR_Z);
+		CPSR |= result ? 0 : CPSR_Z;
+		CPSR |= (result & 0x8000000000000000) ? CPSR_N : 0;
+	}
+
+	GPRs[RdLo] = result & 0xFFFFFFFF;
+	GPRs[RdHi] = result >> 32;
 
 	return 0;
 }
