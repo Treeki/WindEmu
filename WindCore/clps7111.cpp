@@ -20,7 +20,7 @@ uint32_t Emulator::readReg8(uint32_t reg) {
 	if (reg == PADR) {
 		return ((portValues >> 24) & 0x80) | (readKeyboard() & 0x7F);
 	} else if (reg == PBDR) {
-		return ((portValues >> 16) & 0x0F) | (keyboardExtra << 4);
+		return ((portValues >> 16) & 0x0F) | ((keyboardExtra ^ 0xF) << 4);
 	} else if (reg == PDDR) {
 		return (portValues >> 8) & 0xFF;
 	} else if (reg == PEDR) {
