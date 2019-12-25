@@ -111,6 +111,8 @@ protected:
 public:
 	EmuBase(bool isTVersion) : ARM710(isTVersion) { }
 
+	virtual uint8_t *getROMBuffer() = 0;
+	virtual size_t getROMSize() = 0;
 	virtual void loadROM(uint8_t *buffer, size_t size) = 0;
 	virtual void executeUntil(int64_t cycles) = 0;
 	virtual int32_t getClockSpeed() const = 0;
@@ -121,7 +123,7 @@ public:
 	virtual int getLCDOffsetY() const = 0;
 	virtual int getLCDWidth() const = 0;
 	virtual int getLCDHeight() const = 0;
-	virtual void readLCDIntoBuffer(uint8_t **lines) const = 0;
+	virtual void readLCDIntoBuffer(uint8_t **lines, bool is32BitOutput) const = 0;
 	virtual void setKeyboardKey(EpocKey key, bool value) = 0;
 	virtual void updateTouchInput(int32_t x, int32_t y, bool down) = 0;
 

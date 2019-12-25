@@ -57,7 +57,7 @@ void PDAScreenWindow::updateScreen() {
 	QImage img(emu->getLCDWidth(), emu->getLCDHeight(), QImage::Format_Grayscale8);
 	for (int y = 0; y < img.height(); y++)
 		lines[y] = img.scanLine(y);
-	emu->readLCDIntoBuffer(lines);
+	emu->readLCDIntoBuffer(lines, false);
 
 	lcd->setPixmap(QPixmap::fromImage(std::move(img)));
 }

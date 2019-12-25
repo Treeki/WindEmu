@@ -282,6 +282,12 @@ void Emulator::configure() {
 	reset();
 }
 
+uint8_t *Emulator::getROMBuffer() {
+	return ROM;
+}
+size_t Emulator::getROMSize() {
+	return sizeof(ROM);
+}
 void Emulator::loadROM(uint8_t *buffer, size_t size) {
 	memcpy(ROM, buffer, min(size, sizeof(ROM)));
 }
@@ -463,7 +469,7 @@ int Emulator::getLCDOffsetY()      const { return 0; }
 int Emulator::getLCDWidth()        const { return 320; }
 int Emulator::getLCDHeight()       const { return 200; }
 
-void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
+void Emulator::readLCDIntoBuffer(uint8_t **lines, bool is32BitOutput) const {
 	if (lcdAddress == 0xC0000000) {
 		int width = 320, height = 200;
 		int bpp = 1;
@@ -487,7 +493,13 @@ void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
 					palValue = (lcdPalette >> (palIdx * 4)) & 0xF;
 
 				palValue |= (palValue << 4);
-				lines[y][x] = palValue ^ 0xFF;
+				if (is32BitOutput) {
+					lines[y][x*4] = palValue ^ 0xFF;
+					lines[y][x*4+1] = palValue ^ 0xFF;
+					lines[y][x*4+2] = palValue ^ 0xFF;
+				} else {
+					lines[y][x] = palValue ^ 0xFF;
+				}
 			}
 		}
 	}

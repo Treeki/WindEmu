@@ -1,1 +1,7 @@
 *.pro.user*
+WindWasm/WindEmu.data
+WindWasm/WindEmu.html
+WindWasm/WindEmu.js
+WindWasm/WindEmu.wasm
+WindWasm/rom
+WindWasm/obj

@@ -61,6 +61,8 @@ private:
 
 public:
 	Emulator();
+	uint8_t *getROMBuffer() override;
+	size_t getROMSize() override;
 	void loadROM(uint8_t *buffer, size_t size) override;
 	void executeUntil(int64_t cycles) override;
 	int32_t getClockSpeed() const override { return CLOCK_SPEED; }
@@ -71,7 +73,7 @@ public:
 	int getLCDOffsetY() const override;
 	int getLCDWidth() const override;
 	int getLCDHeight() const override;
-	void readLCDIntoBuffer(uint8_t **lines) const override;
+	void readLCDIntoBuffer(uint8_t **lines, bool is32BitOutput) const override;
 	void setKeyboardKey(EpocKey key, bool value) override;
 	void updateTouchInput(int32_t x, int32_t y, bool down) override;
 };

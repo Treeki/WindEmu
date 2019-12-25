@@ -369,6 +369,12 @@ void Emulator::configure() {
 	reset();
 }
 
+uint8_t *Emulator::getROMBuffer() {
+	return ROM;
+}
+size_t Emulator::getROMSize() {
+	return sizeof(ROM);
+}
 void Emulator::loadROM(uint8_t *buffer, size_t size) {
 	memcpy(ROM, buffer, min(size, sizeof(ROM)));
 }
@@ -542,7 +548,21 @@ int Emulator::getLCDOffsetY()      const { return 5; }
 int Emulator::getLCDWidth()        const { return 640; }
 int Emulator::getLCDHeight()       const { return 240; }
 
-void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
+// TODO move this elsewhere
+static bool initRgbValues = false;
+static uint32_t rgbValues[16];
+
+void Emulator::readLCDIntoBuffer(uint8_t **lines, bool is32BitOutput) const {
+	if (!initRgbValues) {
+		initRgbValues = true;
+		for (int i = 0; i < 16; i++) {
+			int r = (0x99 * i) / 15;
+			int g = (0xAA * i) / 15;
+			int b = (0x88 * i) / 15;
+			rgbValues[15 - i] = r | (g << 8) | (b << 16) | 0xFF000000;
+		}
+	}
+
 	if ((lcdAddress >> 24) == 0xC0) {
 		const uint8_t *lcdBuf = &MemoryBlockC0[lcdAddress & MemoryBlockMask];
 		int width = 640, height = 240;
@@ -565,8 +585,13 @@ void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
 				int palIdx = (byte >> shift) & mask;
 				int palValue = palette[palIdx];
 
-				palValue |= (palValue << 4);
-				lines[y][x] = palValue ^ 0xFF;
+				if (is32BitOutput) {
+					auto line = (uint32_t *)lines[y];
+					line[x] = rgbValues[palValue];
+				} else {
+					palValue |= (palValue << 4);
+					lines[y][x] = palValue ^ 0xFF;
+				}
 			}
 		}
 	}
