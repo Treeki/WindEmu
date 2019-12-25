@@ -27,6 +27,28 @@ PDAScreenWindow::PDAScreenWindow(EmuBase *emu, QWidget *parent) :
 		(new QLabel("Copy/Paste", this))->setGeometry(rightX, bitH * 2, bitW, bitH);
 		(new QLabel("Zoom In",    this))->setGeometry(rightX, bitH * 3, bitW, bitH);
 		(new QLabel("Zoom Out",   this))->setGeometry(rightX, bitH * 4, bitW, bitH);
+	} else if (strcmp(who, "Series 5mx") == 0) {
+		int leftW = emu->getLCDOffsetX();
+		int leftH = emu->getLCDHeight() / 5;
+		(new QLabel("➡️",       this))->setGeometry(0, leftH * 0, leftW, leftH);
+		(new QLabel("📄",       this))->setGeometry(0, leftH * 1, leftW, leftH);
+		(new QLabel("📡",       this))->setGeometry(0, leftH * 2, leftW, leftH);
+		(new QLabel("+",       this))->setGeometry(0, leftH * 3, leftW, leftH);
+		(new QLabel("-",       this))->setGeometry(0, leftH * 4, leftW, leftH);
+
+		int barX = 50;
+		int barY = leftH * 5;
+		int barW = (emu->getDigitiserWidth() - barX) / 8;
+		int barH = emu->getDigitiserHeight() - emu->getLCDHeight();
+		(new QLabel("System",   this))->setGeometry(0, barY, barX, barH);
+		(new QLabel("Word",     this))->setGeometry(barX + barW * 0, barY, barW, barH);
+		(new QLabel("Sheet",    this))->setGeometry(barX + barW * 1, barY, barW, barH);
+		(new QLabel("Contacts", this))->setGeometry(barX + barW * 2, barY, barW, barH);
+		(new QLabel("Agenda",   this))->setGeometry(barX + barW * 3, barY, barW, barH);
+		(new QLabel("Email",    this))->setGeometry(barX + barW * 4, barY, barW, barH);
+		(new QLabel("Calc",     this))->setGeometry(barX + barW * 5, barY, barW, barH);
+		(new QLabel("Jotter",   this))->setGeometry(barX + barW * 6, barY, barW, barH);
+		(new QLabel("Extras",   this))->setGeometry(barX + barW * 7, barY, barW, barH);
 	}
 }
 

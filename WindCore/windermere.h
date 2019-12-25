@@ -24,9 +24,12 @@ private:
     uint32_t lcdControl = 0;
     uint32_t lcdAddress = 0;
     uint32_t rtc = 0;
+	uint16_t lastSSIRequest = 0;
+	int ssiReadCounter = 0;
 
 	uint32_t kScan = 0;
 	uint8_t keyboardColumns[8] = {0,0,0,0,0,0,0};
+	int32_t touchX = 0, touchY = 0;
 
     Timer tc1, tc2;
     UART uart1, uart2;

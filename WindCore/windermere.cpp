@@ -72,16 +72,34 @@ uint32_t Emulator::readReg32(uint32_t reg) {
 		return tc1.value;
 	} else if (reg == TC2VAL) {
 		return tc2.value;
-    } else if (reg == SSSR) {
-//		printf("!!! SSSR kludge! !!!\n");
+	} else if (reg == SSDR) {
+		// as per 5000A7B0 in 5mx rom
+		uint16_t ssiValue = 0;
+		switch (lastSSIRequest) {
+//		case 0x9093: ssiValue = (uint16_t)(1156 - (touchY * 3.96)); break;
+//		case 0xD0D3: ssiValue = (uint16_t)(2819 - (touchX * 3.91)); break;
+		case 0x9093: ssiValue = (uint16_t)(1156 - (touchY * 3.96)); break;
+		case 0xD0D3: ssiValue = (uint16_t)(1276 + (touchX * 3.91)); break;
+		case 0xA4A4: ssiValue = 3100; break; // MainBattery
+		case 0xE4E4: ssiValue = 3100; break; // BackupBattery
+		}
+
+		uint32_t ret = 0;
+		if (ssiReadCounter == 4) ret = (ssiValue >> 5) & 0x7F;
+		if (ssiReadCounter == 5) ret = (ssiValue << 3) & 0xF8;
+		ssiReadCounter++;
+		if (ssiReadCounter == 6) ssiReadCounter = 0;
+
+		// by hardware we should be clearing SSEOTI here, i think
+		// but we just leave it on to simplify things
+		return ret;
+	} else if (reg == SSSR) {
 		return 0;
     } else if (reg == RTCDRL) {
-//        uint16_t v = getRTC() & 0xFFFF;
         uint16_t v = rtc & 0xFFFF;
 //        printf("RTCDRL: %04x\n", v);
         return v;
     } else if (reg == RTCDRU) {
-//        uint16_t v = getRTC() >> 16;
         uint16_t v = rtc >> 16;
 //        printf("RTCDRU: %04x\n", v);
         return v;
@@ -178,6 +196,9 @@ void Emulator::writeReg32(uint32_t reg, uint32_t value) {
 		uart1.writeReg32(reg & 0xFF, value);
 	} else if ((reg & 0xF00) == 0x700) {
 		uart2.writeReg32(reg & 0xFF, value);
+	} else if (reg == SSDR) {
+		if (value != 0)
+			lastSSIRequest = (lastSSIRequest >> 8) | (value & 0xFF00);
 	} else if (reg == TC1LOAD) {
 		tc1.load(value);
 	} else if (reg == TC1EOI) {
@@ -475,6 +496,35 @@ void Emulator::debugPC(uint32_t pc) {
 		log("KERNEL MMU PAGES: v:%08x p:%08x size:%08x idx:%02x tableA:%08x tableB:%08x",
 			virtAddr, physAddr, regionSize, btIndex, pageTableA, pageTableB);
 	}
+
+	if (pc == 0x1576C) {
+		uint32_t rawEvent = getGPR(0);
+		uint32_t evtType = readVirtualDebug(rawEvent, V32).value_or(0);
+		uint32_t evtTick = readVirtualDebug(rawEvent + 4, V32).value_or(0);
+		uint32_t evtParamA = readVirtualDebug(rawEvent + 8, V32).value_or(0);
+		uint32_t evtParamB = readVirtualDebug(rawEvent + 0xC, V32).value_or(0);
+		const char *n = "???";
+		switch (evtType) {
+		case 0: n = "ENone"; break;
+		case 1: n = "EPointerMove"; break;
+		case 2: n = "EPointerSwitchOn"; break;
+		case 3: n = "EKeyDown"; break;
+		case 4: n = "EKeyUp"; break;
+		case 5: n = "ERedraw"; break;
+		case 6: n = "ESwitchOn"; break;
+		case 7: n = "EActive"; break;
+		case 8: n = "EInactive"; break;
+		case 9: n = "EUpdateModifiers"; break;
+		case 10: n = "EButton1Down"; break;
+		case 11: n = "EButton1Up"; break;
+		case 12: n = "EButton2Down"; break;
+		case 13: n = "EButton2Up"; break;
+		case 14: n = "EButton3Down"; break;
+		case 15: n = "EButton3Up"; break;
+		case 16: n = "ESwitchOff"; break;
+		}
+		log("EVENT %s: tick=%d params=%08x,%08x", n, evtTick, evtParamA, evtParamB);
+	}
 }
 
 
@@ -660,6 +710,11 @@ void Emulator::setKeyboardKey(EpocKey key, bool value) {
 }
 
 void Emulator::updateTouchInput(int32_t x, int32_t y, bool down) {
+	pendingInterrupts &= ~(1 << EINT3);
+	if (down)
+		pendingInterrupts |= (1 << EINT3);
+	touchX = x;
+	touchY = y;
 }
 
 }

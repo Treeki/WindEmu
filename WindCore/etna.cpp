@@ -51,6 +51,12 @@ Etna::Etna(ARM710 *owner) {
     for (int i = 0; i < 0x80; i++)
         prom[i] = 0;
 
+	// defaults expected by the touchscreen code
+	prom[0xA] = 20;
+	prom[0xB] = 20;
+	prom[0xC] = 20;
+	prom[0xD] = 30;
+
     // some basic stuff to begin with
     // set up the Psion's unique ID
     prom[0x1B] = 0xDE;
