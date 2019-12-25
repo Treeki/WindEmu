@@ -10,8 +10,6 @@
 
 CXX_GUARD_START
 
-#include "arm.h"
-
 // Bit 0: a register is involved with this operand
 // Bit 1: an immediate is invovled with this operand
 // Bit 2: a memory access is invovled with this operand
@@ -186,6 +184,9 @@ enum ARMMnemonic {
 };
 
 enum {
+	ARM_SP = 13,
+	ARM_LR = 14,
+	ARM_PC = 15,
 	ARM_CPSR = 16,
 	ARM_SPSR = 17
 };

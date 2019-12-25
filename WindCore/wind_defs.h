@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 
+namespace Windermere {
 enum {
 	CLOCK_SPEED = 0x9000*1000,
 	TICK_INTERVAL = CLOCK_SPEED / 64
@@ -27,7 +28,7 @@ enum Interrupt {
 	IRQ_INTERRUPTS = 0xFFF0
 };
 
-enum WindermereReg {
+enum Register {
 	MEMCFG1 = 0,
 	MEMCFG2 = 4,
 	DRAM_CFG = 0x100,
@@ -89,6 +90,4 @@ enum WindermereReg {
 	KSCAN = 0xE28,
 	LCDMUX = 0xE2C
 };
-
-void windDiffPorts(uint32_t oldval, uint32_t newval);
-void windDiffInterrupts(uint16_t oldval, uint16_t newval);
+}

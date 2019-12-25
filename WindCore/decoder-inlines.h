@@ -8,8 +8,6 @@
 
 #include "decoder.h"
 
-#include "arm.h"
-
 #include <stdio.h>
 #include <string.h>
 

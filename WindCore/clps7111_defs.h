@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 
+namespace CLPS7111 {
 enum {
 	CLOCK_SPEED = 0x4800*1000,
 	TICK_INTERVAL = CLOCK_SPEED / 64
@@ -30,7 +31,7 @@ enum Interrupt {
 	IRQ_INTERRUPTS = 0xFFF0
 };
 
-enum Clps7111Reg {
+enum Register {
 	PADR = 0,
 	PBDR = 1,
 	PDDR = 3,
@@ -78,4 +79,5 @@ enum Clps7111Reg {
 	UBRLCR2 = 0x14C0,
 	KBDEOI = 0x1700
 };
+}
 

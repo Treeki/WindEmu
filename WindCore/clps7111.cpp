@@ -5,18 +5,19 @@
 #include "common.h"
 
 
-CLPS7111::CLPS7111() : ARM710(false), pcCardController(this) {
+namespace CLPS7111 {
+Emulator::Emulator() : EmuBase(false), pcCardController(this) {
 }
 
 
-uint32_t CLPS7111::getRTC() {
+uint32_t Emulator::getRTC() {
 	return time(nullptr) - 946684800;
 }
 
 
-uint32_t CLPS7111::readReg8(uint32_t reg) {
+uint32_t Emulator::readReg8(uint32_t reg) {
 	if (reg == PADR) {
-		return readKeyboard();
+		return readKeyboard(kScan);
 	} else if (reg == PBDR) {
 		return (portValues >> 16) & 0xFF;
 	} else if (reg == PDDR) {
@@ -36,7 +37,7 @@ uint32_t CLPS7111::readReg8(uint32_t reg) {
 		return 0xFF;
 	}
 }
-uint32_t CLPS7111::readReg32(uint32_t reg) {
+uint32_t Emulator::readReg32(uint32_t reg) {
 	if (reg == SYSCON1) {
 		uint32_t flg = 0;
 		if (tc1.config & Timer::PERIODIC) flg |= 0x10;
@@ -80,7 +81,7 @@ uint32_t CLPS7111::readReg32(uint32_t reg) {
 	}
 }
 
-void CLPS7111::writeReg8(uint32_t reg, uint8_t value) {
+void Emulator::writeReg8(uint32_t reg, uint8_t value) {
 	if (reg == PADR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0x00FFFFFF;
@@ -126,7 +127,7 @@ void CLPS7111::writeReg8(uint32_t reg, uint8_t value) {
 		log("RegWrite8 unknown:: pc=%08x reg=%03x value=%02x", getRealPC(), reg, value);
 	}
 }
-void CLPS7111::writeReg32(uint32_t reg, uint32_t value) {
+void Emulator::writeReg32(uint32_t reg, uint32_t value) {
 	if (reg == SYSCON1) {
 		kScan = value & 0xF;
 		tc1.config = Timer::ENABLED; // always on with PS-7111!
@@ -178,18 +179,7 @@ void CLPS7111::writeReg32(uint32_t reg, uint32_t value) {
 	}
 }
 
-bool CLPS7111::isPhysAddressValid(uint32_t physAddress) const {
-	uint8_t region = (physAddress >> 24) & 0xF1;
-	switch (region) {
-	case 0: return true;
-	case 0x80: return (physAddress <= 0x80000FFF);
-	case 0xC0: return true;
-	default: return false;
-	}
-}
-
-
-MaybeU32 CLPS7111::readPhysical(uint32_t physAddr, ValueSize valueSize) {
+MaybeU32 Emulator::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 	uint8_t region = (physAddr >> 28);
 	if (valueSize == V8) {
 		if (region == 0)
@@ -226,7 +216,7 @@ MaybeU32 CLPS7111::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 	return {};
 }
 
-bool CLPS7111::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) {
+bool Emulator::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) {
 	uint8_t region = (physAddr >> 28);
 	if (valueSize == V8) {
 		if (region == 0xC)
@@ -256,7 +246,7 @@ bool CLPS7111::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueS
 
 
 
-void CLPS7111::configure() {
+void Emulator::configure() {
 	if (configured) return;
 	configured = true;
 
@@ -273,13 +263,11 @@ void CLPS7111::configure() {
 	reset();
 }
 
-void CLPS7111::loadROM(const char *path) {
-	FILE *f = fopen(path, "rb");
-	fread(ROM, 1, sizeof(ROM), f);
-	fclose(f);
+void Emulator::loadROM(uint8_t *buffer, size_t size) {
+	memcpy(ROM, buffer, min(size, sizeof(ROM)));
 }
 
-void CLPS7111::executeUntil(int64_t cycles) {
+void Emulator::executeUntil(int64_t cycles) {
 	if (!configured)
 		configure();
 
@@ -333,23 +321,8 @@ void CLPS7111::executeUntil(int64_t cycles) {
 	}
 }
 
-void CLPS7111::dumpRAM(const char *path) {
-	FILE *f = fopen(path, "wb");
-	fwrite(MemoryBlockC0, 1, sizeof(MemoryBlockC0), f);
-	fclose(f);
-}
 
-
-
-void CLPS7111::printRegs() {
-	printf("R00:%08x R01:%08x R02:%08x R03:%08x\n", getGPR(0), getGPR(1), getGPR(2), getGPR(3));
-	printf("R04:%08x R05:%08x R06:%08x R07:%08x\n", getGPR(4), getGPR(5), getGPR(6), getGPR(7));
-	printf("R08:%08x R09:%08x R10:%08x R11:%08x\n", getGPR(8), getGPR(9), getGPR(10), getGPR(11));
-	printf("R12:%08x R13:%08x R14:%08x R15:%08x\n", getGPR(12), getGPR(13), getGPR(14), getGPR(15));
-//    printf("cpsr=%08x spsr=%08x\n", cpu.cpsr.packed, cpu.spsr.packed);
-}
-
-const char *CLPS7111::identifyObjectCon(uint32_t ptr) {
+const char *Emulator::identifyObjectCon(uint32_t ptr) {
 	if (ptr == readVirtualDebug(0x80000880, V32).value()) return "process";
 	if (ptr == readVirtualDebug(0x80000884, V32).value()) return "thread";
 	if (ptr == readVirtualDebug(0x80000888, V32).value()) return "chunk";
@@ -366,7 +339,7 @@ const char *CLPS7111::identifyObjectCon(uint32_t ptr) {
 	return "???";
 }
 
-void CLPS7111::fetchStr(uint32_t str, char *buf) {
+void Emulator::fetchStr(uint32_t str, char *buf) {
 	if (str == 0) {
 		strcpy(buf, "<NULL>");
 		return;
@@ -378,15 +351,15 @@ void CLPS7111::fetchStr(uint32_t str, char *buf) {
 	buf[size] = 0;
 }
 
-void CLPS7111::fetchName(uint32_t obj, char *buf) {
+void Emulator::fetchName(uint32_t obj, char *buf) {
 	fetchStr(readVirtualDebug(obj + 0x10, V32).value(), buf);
 }
 
-void CLPS7111::fetchProcessFilename(uint32_t obj, char *buf) {
+void Emulator::fetchProcessFilename(uint32_t obj, char *buf) {
 	fetchStr(readVirtualDebug(obj + 0x3C, V32).value(), buf);
 }
 
-void CLPS7111::debugPC(uint32_t pc) {
+void Emulator::debugPC(uint32_t pc) {
 	char objName[1000];
 	if (pc == 0x32304) {
 		// CObjectCon::AddL()
@@ -431,41 +404,48 @@ void CLPS7111::debugPC(uint32_t pc) {
 		log("DPlatChunkHw MAPPING: v:%08x p:%08x size:%08x arg:%08x",
 			virtAddr, physAddr, regionSize, a);
 	}
-//	if (pc == 0x3B250) {
-//		log("DBG 5003B250: pc=%08x lr=%08x sp=%08x", getRealPC(), getGPR(14), getGPR(13));
-//	}
 }
 
 
-const uint8_t *CLPS7111::getLCDBuffer() const {
-	if ((lcdAddress >> 24) == 0xC0)
-		return &MemoryBlockC0[lcdAddress & MemoryBlockMask];
-	else
-		return nullptr;
+int Emulator::getLCDWidth() const {
+	return 320;
 }
+int Emulator::getLCDHeight() const {
+	return 200;
+}
+void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
+	if (lcdAddress == 0xC0000000) {
+		int width = 320, height = 200;
+		int bpp = 1;
+		if (lcdControl & 0x40000000) bpp = 2;
+		if (lcdControl & 0x80000000) bpp = 4;
+		int ppb = 8 / bpp;
 
+		// build our image out
+		int lineWidth = (width * bpp) / 8;
+		for (int y = 0; y < height; y++) {
+			int lineOffs = lineWidth * y;
+			for (int x = 0; x < width; x++) {
+				uint8_t byte = MemoryBlockC0[lineOffs + (x / ppb)];
+				int shift = (x & (ppb - 1)) * bpp;
+				int mask = (1 << bpp) - 1;
+				int palIdx = (byte >> shift) & mask;
+				int palValue;
+				if (bpp == 1)
+					palValue = palIdx * 255;
+				else
+					palValue = (lcdPalette >> (palIdx * 4)) & 0xF;
 
-uint8_t CLPS7111::readKeyboard() {
-	uint8_t val = 0;
-	if (kScan & 8) {
-		// Select one keyboard
-		int whichColumn = kScan & 7;
-		for (int i = 0; i < 7; i++)
-			if (keyboardKeys[whichColumn * 7 + i])
-				val |= (1 << i);
-	} else if (kScan == 0) {
-		// Report all columns combined
-		// EPOC's keyboard driver relies on this...
-		for (int i = 0; i < 8*7; i++)
-			if (keyboardKeys[i])
-				val |= (1 << (i % 7));
+				palValue |= (palValue << 4);
+				lines[y][x] = palValue ^ 0xFF;
+			}
+		}
 	}
-	return val;
 }
 
 
 
-void CLPS7111::diffPorts(uint32_t oldval, uint32_t newval) {
+void Emulator::diffPorts(uint32_t oldval, uint32_t newval) {
 	uint32_t changes = oldval ^ newval;
 	if (changes & 1) log("PRT E0: %d", newval&1);
 	if (changes & 2) log("PRT E1: %d", newval&2);
@@ -486,12 +466,5 @@ void CLPS7111::diffPorts(uint32_t oldval, uint32_t newval) {
 	if (changes & 0x200000) log("PRT B5: %d", newval&0x200000);
 	if (changes & 0x400000) log("PRT B6: %d", newval&0x400000);
 	if (changes & 0x800000) log("PRT B7: %d", newval&0x800000);
-	if (changes & 0x1000000) log("PRT A0: %d", newval&0x1000000);
-	if (changes & 0x2000000) log("PRT A1: %d", newval&0x2000000);
-	if (changes & 0x4000000) log("PRT A2: %d", newval&0x4000000);
-	if (changes & 0x8000000) log("PRT A3: %d", newval&0x8000000);
-	if (changes & 0x10000000) log("PRT A4: %d", newval&0x10000000);
-	if (changes & 0x20000000) log("PRT A5: %d", newval&0x20000000);
-	if (changes & 0x40000000) log("PRT A6: %d", newval&0x40000000);
-	if (changes & 0x80000000) log("PRT A7: %d", newval&0x80000000);
+}
 }

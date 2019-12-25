@@ -26,12 +26,10 @@ SOURCES += \
     arm710.cpp \
     clps7111.cpp \
     clps7600.cpp \
+    emubase.cpp \
     etna.cpp \
-    isa-arm.c \
     decoder.c \
     decoder-arm.c \
-    arm.c \
-    wind_defs.cpp \
     windermere.cpp
 
 HEADERS += \
@@ -39,6 +37,7 @@ HEADERS += \
     clps7111.h \
     clps7111_defs.h \
     clps7600.h \
+    emubase.h \
     etna.h \
     hardware.h \
     wind_defs.h \
@@ -50,7 +49,6 @@ HEADERS += \
     decoder.h \
     decoder-inlines.h \
     common.h \
-    arm.h \
     windermere.h
 unix {
     target.path = /usr/lib

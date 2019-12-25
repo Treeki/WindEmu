@@ -1,19 +1,17 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "../WindCore/clps7111_defs.h"
 #include <QTimer>
 #include <QKeyEvent>
 #include "../WindCore/decoder.h"
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(EmuBase *emu, QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+	ui(new Ui::MainWindow),
+	emu(emu)
 {
     ui->setupUi(this);
 	ui->logView->setMaximumBlockCount(1000);
 
-	emu = new CLPS7111;
-	emu->loadROM("/Users/ash/src/psion/Osaris.bin");
 	emu->setLogger([&](const char *str) {
 		ui->logView->appendPlainText(str);
 	});
@@ -102,68 +100,13 @@ void MainWindow::updateScreen()
 	ui->codeLabel->setText(codeLines.join('\n'));
 
     // now, the actual screen
-    const uint8_t *lcdBuf = emu->getLCDBuffer();
-    if (lcdBuf) {
-#if 0
-		QImage img(640, 240, QImage::Format_Grayscale8);
+	uint8_t *lines[1024];
+	QImage img(emu->getLCDWidth(), emu->getLCDHeight(), QImage::Format_Grayscale8);
+	for (int y = 0; y < img.height(); y++)
+		lines[y] = img.scanLine(y);
+	emu->readLCDIntoBuffer(lines);
 
-		// fetch palette
-        int bpp = 1 << (lcdBuf[1] >> 4);
-        int ppb = 8 / bpp;
-        uint16_t palette[16];
-        for (int i = 0; i < 16; i++)
-            palette[i] = lcdBuf[i*2] | ((lcdBuf[i*2+1] << 8) & 0xF00);
-
-        // build our image out
-        int lineWidth = (img.width() * bpp) / 8;
-        for (int y = 0; y < img.height(); y++) {
-            uint8_t *scanline = img.scanLine(y);
-            int lineOffs = 0x20 + (lineWidth * y);
-            for (int x = 0; x < img.width(); x++) {
-                uint8_t byte = lcdBuf[lineOffs + (x / ppb)];
-                int shift = (x & (ppb - 1)) * bpp;
-				int mask = (1 << bpp) - 1;
-                int palIdx = (byte >> shift) & mask;
-                int palValue = palette[palIdx];
-
-				palValue |= (palValue << 4);
-				scanline[x] = palValue ^ 0xFF;
-            }
-        }
-#else
-		QImage img(320, 200, QImage::Format_Grayscale8);
-
-		uint32_t lcdControl = emu->getLCDControl();
-		uint64_t lcdPalette = emu->getLCDPalette();
-		int bpp = 1;
-		if (lcdControl & 0x40000000) bpp = 2;
-		if (lcdControl & 0x80000000) bpp = 4;
-		int ppb = 8 / bpp;
-
-		// build our image out
-		int lineWidth = (img.width() * bpp) / 8;
-		for (int y = 0; y < img.height(); y++) {
-			uint8_t *scanline = img.scanLine(y);
-			int lineOffs = lineWidth * y;
-			for (int x = 0; x < img.width(); x++) {
-				uint8_t byte = lcdBuf[lineOffs + (x / ppb)];
-				int shift = (x & (ppb - 1)) * bpp;
-				int mask = (1 << bpp) - 1;
-				int palIdx = (byte >> shift) & mask;
-				int palValue;
-				if (bpp == 1)
-					palValue = palIdx * 255;
-				else
-					palValue = (lcdPalette >> (palIdx * 4)) & 0xF;
-
-				palValue |= (palValue << 4);
-				scanline[x] = palValue ^ 0xFF;
-			}
-		}
-#endif
-
-        ui->screen->setPixmap(QPixmap::fromImage(std::move(img)));
-    }
+	ui->screen->setPixmap(QPixmap::fromImage(std::move(img)));
 }
 
 
@@ -296,8 +239,10 @@ void MainWindow::on_stepInsnButton_clicked()
 
 void MainWindow::execTimer()
 {
-    emu->executeUntil(emu->currentCycles() + (CLOCK_SPEED / 64));
-    updateScreen();
+	if (emu) {
+		emu->executeUntil(emu->currentCycles() + (emu->getClockSpeed() / 64));
+		updateScreen();
+	}
 }
 
 void MainWindow::on_addBreakButton_clicked()
@@ -332,7 +277,7 @@ void MainWindow::updateMemory()
 	uint32_t virtBase = ui->memoryViewAddress->text().toUInt(nullptr, 16) & ~0xFF;
 	auto physBaseOpt = emu->virtToPhys(virtBase);
 	auto physBase = physBaseOpt.value_or(0xFFFFFFFF);
-	bool ok = physBaseOpt.has_value() && emu->isPhysAddressValid(physBase);
+	bool ok = physBaseOpt.has_value();
 	if (ok && (virtBase != physBase))
 		ui->physicalAddressLabel->setText(QStringLiteral("Physical: %1").arg(physBase, 8, 16, QLatin1Char('0')));
 

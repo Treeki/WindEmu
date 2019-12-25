@@ -1,11 +1,11 @@
 #pragma once
-#include "arm710.h"
+#include "emubase.h"
 #include "wind_defs.h"
 #include "hardware.h"
 #include "etna.h"
-#include <unordered_set>
 
-class Windermere : public ARM710 {
+namespace Windermere {
+class Emulator : public EmuBase {
 public:
     uint8_t ROM[0x1000000];
 	uint8_t ROM2[0x40000];
@@ -26,14 +26,10 @@ private:
     uint32_t kScan = 0;
     uint32_t rtc = 0;
 
-	int64_t passedCycles = 0;
-    int64_t nextTickAt = 0;
     Timer tc1, tc2;
     UART uart1, uart2;
 	Etna etna;
 	bool halted = false, asleep = false;
-
-	std::unordered_set<uint32_t> _breakpoints;
 
     uint32_t getRTC();
 
@@ -43,32 +39,28 @@ private:
     void writeReg32(uint32_t reg, uint32_t value);
 
 public:
-	bool isPhysAddressValid(uint32_t addr) const;
 	MaybeU32 readPhysical(uint32_t physAddr, ValueSize valueSize) override;
 	bool writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) override;
-
-    const uint8_t *getLCDBuffer() const;
 
 private:
     bool configured = false;
     void configure();
 
-    void printRegs();
     const char *identifyObjectCon(uint32_t ptr);
     void fetchStr(uint32_t str, char *buf);
     void fetchName(uint32_t obj, char *buf);
     void fetchProcessFilename(uint32_t obj, char *buf);
     void debugPC(uint32_t pc);
-
-    uint8_t readKeyboard();
-public:
-    bool keyboardKeys[8*7] = {0};
+	void diffPorts(uint32_t oldval, uint32_t newval);
+	void diffInterrupts(uint16_t oldval, uint16_t newval);
 
 public:
-	Windermere();
-    void loadROM(const char *path);
-    void dumpRAM(const char *path);
-	void executeUntil(int64_t cycles);
-	std::unordered_set<uint32_t> &breakpoints() { return _breakpoints; }
-	uint64_t currentCycles() const { return passedCycles; }
+	Emulator();
+	void loadROM(uint8_t *buffer, size_t size) override;
+	void executeUntil(int64_t cycles) override;
+	int32_t getClockSpeed() const override { return CLOCK_SPEED; }
+	int getLCDWidth() const override;
+	int getLCDHeight() const override;
+	void readLCDIntoBuffer(uint8_t **lines) const override;
 };
+}

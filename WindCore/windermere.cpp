@@ -8,16 +8,17 @@
 //#define INCLUDE_D
 //#define INCLUDE_BANK1
 
-Windermere::Windermere() : ARM710(true), etna(this) {
+namespace Windermere {
+Emulator::Emulator() : EmuBase(true), etna(this) {
 }
 
 
-uint32_t Windermere::getRTC() {
+uint32_t Emulator::getRTC() {
     return time(nullptr) - 946684800;
 }
 
 
-uint32_t Windermere::readReg8(uint32_t reg) {
+uint32_t Emulator::readReg8(uint32_t reg) {
 	if ((reg & 0xF00) == 0x600) {
 		return uart1.readReg8(reg & 0xFF);
 	} else if ((reg & 0xF00) == 0x700) {
@@ -27,7 +28,7 @@ uint32_t Windermere::readReg8(uint32_t reg) {
 	} else if (reg == TC2CTRL) {
 		return tc2.config;
 	} else if (reg == PADR) {
-        return readKeyboard();
+		return readKeyboard(kScan);
 	} else if (reg == PBDR) {
 		return (portValues >> 16) & 0xFF;
 	} else if (reg == PCDR) {
@@ -47,7 +48,7 @@ uint32_t Windermere::readReg8(uint32_t reg) {
 		return 0xFF;
 	}
 }
-uint32_t Windermere::readReg32(uint32_t reg) {
+uint32_t Emulator::readReg32(uint32_t reg) {
 	if (reg == LCDCTL) {
 		printf("LCD control read pc=%08x lr=%08x !!!\n", getGPR(15), getGPR(14));
 		return lcdControl;
@@ -92,7 +93,7 @@ uint32_t Windermere::readReg32(uint32_t reg) {
 	}
 }
 
-void Windermere::writeReg8(uint32_t reg, uint8_t value) {
+void Emulator::writeReg8(uint32_t reg, uint8_t value) {
 	if ((reg & 0xF00) == 0x600) {
 		uart1.writeReg8(reg & 0xFF, value);
 	} else if ((reg & 0xF00) == 0x700) {
@@ -105,7 +106,7 @@ void Windermere::writeReg8(uint32_t reg, uint8_t value) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0x00FFFFFF;
 		portValues |= (uint32_t)value << 24;
-		windDiffPorts(oldPorts, portValues);
+		diffPorts(oldPorts, portValues);
 	} else if (reg == PBDR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFF00FFFF;
@@ -116,17 +117,17 @@ void Windermere::writeReg8(uint32_t reg, uint8_t value) {
 			etna.setPromBit0Low();
 		if ((portValues & 0x20000) && !(oldPorts & 0x20000))
 			etna.setPromBit1High();
-		windDiffPorts(oldPorts, portValues);
+		diffPorts(oldPorts, portValues);
 	} else if (reg == PCDR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFFFF00FF;
 		portValues |= (uint32_t)value << 8;
-		windDiffPorts(oldPorts, portValues);
+		diffPorts(oldPorts, portValues);
 	} else if (reg == PDDR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0xFFFFFF00;
 		portValues |= (uint32_t)value;
-		windDiffPorts(oldPorts, portValues);
+		diffPorts(oldPorts, portValues);
 	} else if (reg == PADDR) {
 		portDirections &= 0x00FFFFFF;
 		portDirections |= (uint32_t)value << 24;
@@ -145,7 +146,7 @@ void Windermere::writeReg8(uint32_t reg, uint8_t value) {
 //		printf("RegWrite8 unknown:: pc=%08x reg=%03x value=%02x\n", getGPR(15)-4, reg, value);
 	}
 }
-void Windermere::writeReg32(uint32_t reg, uint32_t value) {
+void Emulator::writeReg32(uint32_t reg, uint32_t value) {
 	if (reg == LCDCTL) {
 		printf("LCD: ctl write %08x\n", value);
 		lcdControl = value;
@@ -159,10 +160,10 @@ void Windermere::writeReg32(uint32_t reg, uint32_t value) {
 	} else if (reg == LCDT2) {
 		printf("LCD: clocks write %08x\n", value);
 	} else if (reg == INTENS) {
-//		windDiffInterrupts(interruptMask, interruptMask | value);
+//		diffInterrupts(interruptMask, interruptMask | value);
 		interruptMask |= value;
 	} else if (reg == INTENC) {
-//		windDiffInterrupts(interruptMask, interruptMask &~ value);
+//		diffInterrupts(interruptMask, interruptMask &~ value);
 		interruptMask &= ~value;
 	} else if (reg == HALT) {
 		halted = true;
@@ -190,21 +191,7 @@ void Windermere::writeReg32(uint32_t reg, uint32_t value) {
 	}
 }
 
-bool Windermere::isPhysAddressValid(uint32_t physAddress) const {
-	uint8_t region = (physAddress >> 24) & 0xF1;
-	switch (region) {
-	case 0: return true;
-	case 0x80: return (physAddress <= 0x80000FFF);
-	case 0xC0: return true;
-	case 0xC1: return true;
-	case 0xD0: return true;
-	case 0xD1: return true;
-	default: return false;
-	}
-}
-
-
-MaybeU32 Windermere::readPhysical(uint32_t physAddr, ValueSize valueSize) {
+MaybeU32 Emulator::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 	uint8_t region = (physAddr >> 24) & 0xF1;
 	if (valueSize == V8) {
 		if (region == 0)
@@ -273,7 +260,7 @@ MaybeU32 Windermere::readPhysical(uint32_t physAddr, ValueSize valueSize) {
 	return {};
 }
 
-bool Windermere::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) {
+bool Emulator::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valueSize) {
 	uint8_t region = (physAddr >> 24) & 0xF1;
 	if (valueSize == V8) {
 #if defined(INCLUDE_BANK1)
@@ -336,7 +323,7 @@ bool Windermere::writePhysical(uint32_t value, uint32_t physAddr, ValueSize valu
 
 
 
-void Windermere::configure() {
+void Emulator::configure() {
 	if (configured) return;
 	configured = true;
 
@@ -355,13 +342,11 @@ void Windermere::configure() {
 	reset();
 }
 
-void Windermere::loadROM(const char *path) {
-	FILE *f = fopen(path, "rb");
-	fread(ROM, 1, sizeof(ROM), f);
-	fclose(f);
+void Emulator::loadROM(uint8_t *buffer, size_t size) {
+	memcpy(ROM, buffer, min(size, sizeof(ROM)));
 }
 
-void Windermere::executeUntil(int64_t cycles) {
+void Emulator::executeUntil(int64_t cycles) {
 	if (!configured)
 		configure();
 
@@ -415,26 +400,8 @@ void Windermere::executeUntil(int64_t cycles) {
 	}
 }
 
-void Windermere::dumpRAM(const char *path) {
-	FILE *f = fopen(path, "wb");
-	fwrite(MemoryBlockC0, 1, sizeof(MemoryBlockC0), f);
-	fwrite(MemoryBlockC1, 1, sizeof(MemoryBlockC1), f);
-	fwrite(MemoryBlockD0, 1, sizeof(MemoryBlockD0), f);
-	fwrite(MemoryBlockD1, 1, sizeof(MemoryBlockD1), f);
-	fclose(f);
-}
 
-
-
-void Windermere::printRegs() {
-	printf("R00:%08x R01:%08x R02:%08x R03:%08x\n", getGPR(0), getGPR(1), getGPR(2), getGPR(3));
-	printf("R04:%08x R05:%08x R06:%08x R07:%08x\n", getGPR(4), getGPR(5), getGPR(6), getGPR(7));
-	printf("R08:%08x R09:%08x R10:%08x R11:%08x\n", getGPR(8), getGPR(9), getGPR(10), getGPR(11));
-	printf("R12:%08x R13:%08x R14:%08x R15:%08x\n", getGPR(12), getGPR(13), getGPR(14), getGPR(15));
-//    printf("cpsr=%08x spsr=%08x\n", cpu.cpsr.packed, cpu.spsr.packed);
-}
-
-const char *Windermere::identifyObjectCon(uint32_t ptr) {
+const char *Emulator::identifyObjectCon(uint32_t ptr) {
 	if (ptr == readVirtualDebug(0x80000980, V32).value()) return "process";
 	if (ptr == readVirtualDebug(0x80000984, V32).value()) return "thread";
 	if (ptr == readVirtualDebug(0x80000988, V32).value()) return "chunk";
@@ -451,7 +418,7 @@ const char *Windermere::identifyObjectCon(uint32_t ptr) {
 	return NULL;
 }
 
-void Windermere::fetchStr(uint32_t str, char *buf) {
+void Emulator::fetchStr(uint32_t str, char *buf) {
 	if (str == 0) {
 		strcpy(buf, "<NULL>");
 		return;
@@ -463,15 +430,15 @@ void Windermere::fetchStr(uint32_t str, char *buf) {
 	buf[size] = 0;
 }
 
-void Windermere::fetchName(uint32_t obj, char *buf) {
+void Emulator::fetchName(uint32_t obj, char *buf) {
 	fetchStr(readVirtualDebug(obj + 0x10, V32).value(), buf);
 }
 
-void Windermere::fetchProcessFilename(uint32_t obj, char *buf) {
+void Emulator::fetchProcessFilename(uint32_t obj, char *buf) {
 	fetchStr(readVirtualDebug(obj + 0x3C, V32).value(), buf);
 }
 
-void Windermere::debugPC(uint32_t pc) {
+void Emulator::debugPC(uint32_t pc) {
 	char objName[1000];
 	if (pc == 0x2CBC4) {
 		// CObjectCon::AddL()
@@ -511,28 +478,88 @@ void Windermere::debugPC(uint32_t pc) {
 }
 
 
-const uint8_t *Windermere::getLCDBuffer() const {
-	if ((lcdAddress >> 24) == 0xC0)
-		return &MemoryBlockC0[lcdAddress & MemoryBlockMask];
-	else
-		return nullptr;
+int Emulator::getLCDWidth() const {
+	return 640;
+}
+int Emulator::getLCDHeight() const {
+	return 240;
+}
+void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
+	if ((lcdAddress >> 24) == 0xC0) {
+		const uint8_t *lcdBuf = &MemoryBlockC0[lcdAddress & MemoryBlockMask];
+		int width = 640, height = 240;
+
+		// fetch palette
+		int bpp = 1 << (lcdBuf[1] >> 4);
+		int ppb = 8 / bpp;
+		uint16_t palette[16];
+		for (int i = 0; i < 16; i++)
+			palette[i] = lcdBuf[i*2] | ((lcdBuf[i*2+1] << 8) & 0xF00);
+
+		// build our image out
+		int lineWidth = (width * bpp) / 8;
+		for (int y = 0; y < height; y++) {
+			int lineOffs = 0x20 + (lineWidth * y);
+			for (int x = 0; x < width; x++) {
+				uint8_t byte = lcdBuf[lineOffs + (x / ppb)];
+				int shift = (x & (ppb - 1)) * bpp;
+				int mask = (1 << bpp) - 1;
+				int palIdx = (byte >> shift) & mask;
+				int palValue = palette[palIdx];
+
+				palValue |= (palValue << 4);
+				lines[y][x] = palValue ^ 0xFF;
+			}
+		}
+	}
 }
 
 
-uint8_t Windermere::readKeyboard() {
-	uint8_t val = 0;
-	if (kScan & 8) {
-		// Select one keyboard
-		int whichColumn = kScan & 7;
-		for (int i = 0; i < 7; i++)
-			if (keyboardKeys[whichColumn * 7 + i])
-				val |= (1 << i);
-	} else if (kScan == 0) {
-		// Report all columns combined
-		// EPOC's keyboard driver relies on this...
-		for (int i = 0; i < 8*7; i++)
-			if (keyboardKeys[i])
-				val |= (1 << (i % 7));
-	}
-	return val;
+void Emulator::diffPorts(uint32_t oldval, uint32_t newval) {
+	uint32_t changes = oldval ^ newval;
+	if (changes & 1) log("PRT codec enable: %d", newval&1);
+	if (changes & 2) log("PRT audio amp enable: %d", newval&2);
+	if (changes & 4) log("PRT lcd power: %d", newval&4);
+	if (changes & 8) log("PRT etna door: %d", newval&8);
+	if (changes & 0x10) log("PRT sled: %d", newval&0x10);
+	if (changes & 0x20) log("PRT pump pwr2: %d", newval&0x20);
+	if (changes & 0x40) log("PRT pump pwr1: %d", newval&0x40);
+	if (changes & 0x80) log("PRT etna err: %d", newval&0x80);
+	if (changes & 0x100) log("PRT rs-232 rts: %d", newval&0x100);
+	if (changes & 0x200) log("PRT rs-232 dtr toggle: %d", newval&0x200);
+	if (changes & 0x400) log("PRT disable power led: %d", newval&0x400);
+	if (changes & 0x800) log("PRT enable uart1: %d", newval&0x800);
+	if (changes & 0x1000) log("PRT lcd backlight: %d", newval&0x1000);
+	if (changes & 0x2000) log("PRT enable uart0: %d", newval&0x2000);
+	if (changes & 0x4000) log("PRT dictaphone: %d", newval&0x4000);
+// PROM read process makes this super spammy in stdout
+//	if (changes & 0x10000) log("PRT EECS: %d", newval&0x10000);
+//	if (changes & 0x20000) log("PRT EECLK: %d", newval&0x20000);
+	if (changes & 0x40000) log("PRT contrast0: %d", newval&0x40000);
+	if (changes & 0x80000) log("PRT contrast1: %d", newval&0x80000);
+	if (changes & 0x100000) log("PRT contrast2: %d", newval&0x100000);
+	if (changes & 0x200000) log("PRT contrast3: %d", newval&0x200000);
+	if (changes & 0x400000) log("PRT case open: %d", newval&0x400000);
+	if (changes & 0x800000) log("PRT etna cf power: %d", newval&0x800000);
+}
+
+void Emulator::diffInterrupts(uint16_t oldval, uint16_t newval) {
+	uint16_t changes = oldval ^ newval;
+	if (changes & 1) log("INTCHG external=%d", newval & 1);
+	if (changes & 2) log("INTCHG lowbat=%d", newval & 2);
+	if (changes & 4) log("INTCHG watchdog=%d", newval & 4);
+	if (changes & 8) log("INTCHG mediachg=%d", newval & 8);
+	if (changes & 0x10) log("INTCHG codec=%d", newval & 0x10);
+	if (changes & 0x20) log("INTCHG ext1=%d", newval & 0x20);
+	if (changes & 0x40) log("INTCHG ext2=%d", newval & 0x40);
+	if (changes & 0x80) log("INTCHG ext3=%d", newval & 0x80);
+	if (changes & 0x100) log("INTCHG timer1=%d", newval & 0x100);
+	if (changes & 0x200) log("INTCHG timer2=%d", newval & 0x200);
+	if (changes & 0x400) log("INTCHG rtcmatch=%d", newval & 0x400);
+	if (changes & 0x800) log("INTCHG tick=%d", newval & 0x800);
+	if (changes & 0x1000) log("INTCHG uart1=%d", newval & 0x1000);
+	if (changes & 0x2000) log("INTCHG uart2=%d", newval & 0x2000);
+	if (changes & 0x4000) log("INTCHG lcd=%d", newval & 0x4000);
+	if (changes & 0x8000) log("INTCHG spi=%d", newval & 0x8000);
+}
 }
