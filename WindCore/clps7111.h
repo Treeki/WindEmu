@@ -21,10 +21,13 @@ private:
 	uint32_t sysFlg1 = 0x20008000; // constant CL-PS7111 flag and cold start flag
 	uint32_t lcdControl = 0;
 	uint32_t lcdAddress = 0xC0000000;
-	uint32_t kScan = 0;
 	uint32_t rtc = 0;
 	uint32_t rtcDiv = 0;
 	uint64_t lcdPalette = 0;
+
+	uint32_t kScan = 0;
+	uint8_t keyboardColumns[7] = {0,0,0,0,0,0,0};
+	uint8_t keyboardExtra = 0;
 
 	Timer tc1, tc2;
 	CLPS7600 pcCardController;
@@ -52,6 +55,7 @@ private:
 	void fetchProcessFilename(uint32_t obj, char *buf);
 	void debugPC(uint32_t pc);
 	void diffPorts(uint32_t oldval, uint32_t newval);
+	uint32_t readKeyboard() const;
 
 public:
 	Emulator();
@@ -61,5 +65,6 @@ public:
 	int getLCDWidth() const override;
 	int getLCDHeight() const override;
 	void readLCDIntoBuffer(uint8_t **lines) const override;
+	void setKeyboardKey(EpocKey key, bool value) override;
 };
 }

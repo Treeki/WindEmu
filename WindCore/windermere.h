@@ -23,8 +23,10 @@ private:
     uint32_t pwrsr = 0x00002000; // cold start flag
     uint32_t lcdControl = 0;
     uint32_t lcdAddress = 0;
-    uint32_t kScan = 0;
     uint32_t rtc = 0;
+
+	uint32_t kScan = 0;
+	uint8_t keyboardColumns[8] = {0,0,0,0,0,0,0};
 
     Timer tc1, tc2;
     UART uart1, uart2;
@@ -53,6 +55,7 @@ private:
     void debugPC(uint32_t pc);
 	void diffPorts(uint32_t oldval, uint32_t newval);
 	void diffInterrupts(uint16_t oldval, uint16_t newval);
+	uint32_t readKeyboard();
 
 public:
 	Emulator();
@@ -62,5 +65,6 @@ public:
 	int getLCDWidth() const override;
 	int getLCDHeight() const override;
 	void readLCDIntoBuffer(uint8_t **lines) const override;
+	void setKeyboardKey(EpocKey key, bool value) override;
 };
 }

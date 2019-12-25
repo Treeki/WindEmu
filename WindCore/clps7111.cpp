@@ -15,11 +15,12 @@ uint32_t Emulator::getRTC() {
 }
 
 
+
 uint32_t Emulator::readReg8(uint32_t reg) {
 	if (reg == PADR) {
-		return readKeyboard(kScan);
+		return ((portValues >> 24) & 0x80) | (readKeyboard() & 0x7F);
 	} else if (reg == PBDR) {
-		return (portValues >> 16) & 0xFF;
+		return ((portValues >> 16) & 0x0F) | (keyboardExtra << 4);
 	} else if (reg == PDDR) {
 		return (portValues >> 8) & 0xFF;
 	} else if (reg == PEDR) {
@@ -467,4 +468,104 @@ void Emulator::diffPorts(uint32_t oldval, uint32_t newval) {
 	if (changes & 0x400000) log("PRT B6: %d", newval&0x400000);
 	if (changes & 0x800000) log("PRT B7: %d", newval&0x800000);
 }
+
+
+uint32_t Emulator::readKeyboard() const {
+	if (kScan & 8) {
+		// Select one keyboard
+		if ((kScan & 7) < 7)
+			return keyboardColumns[kScan & 7];
+		else
+			return 0;
+	} else if (kScan == 0) {
+		// Report all columns combined
+		uint8_t val = 0;
+		for (int i = 0; i < 7; i++)
+			val |= keyboardColumns[i];
+		return val;
+	} else {
+		return 0;
+	}
+}
+
+void Emulator::setKeyboardKey(EpocKey key, bool value) {
+	int idx = -1;
+#define KEY(column, bit) idx = (column << 8) | (1 << bit); break
+
+	switch ((int)key) {
+	case '1':                KEY(0, 0);
+	case '2':                KEY(1, 0);
+	case '3':                KEY(2, 0);
+	case '4':                KEY(3, 0);
+	case '5':                KEY(4, 0);
+	case '6':                KEY(5, 0);
+	case '7':                KEY(6, 0);
+
+	case '8':                KEY(0, 1);
+	case '9':                KEY(1, 1);
+	case '0':                KEY(2, 1);
+	case 'P':                KEY(3, 1);
+	case EStdKeySingleQuote: KEY(4, 1);
+	case EStdKeyEnter:       KEY(5, 1);
+	case EStdKeyBackspace:   KEY(6, 1);
+
+	case EStdKeyEscape:      KEY(0, 2);
+	case 'Q':                KEY(1, 2);
+	case 'W':                KEY(2, 2);
+	case 'E':                KEY(3, 2);
+	case 'R':                KEY(4, 2);
+	case 'T':                KEY(5, 2);
+	case 'Y':                KEY(6, 2);
+
+	case 'U':                KEY(0, 3);
+	case 'J':                KEY(1, 3);
+	case 'I':                KEY(2, 3);
+	case 'K':                KEY(3, 3);
+	case 'O':                KEY(4, 3);
+	case 'L':                KEY(5, 3);
+	case EStdKeyUpArrow:     KEY(6, 3);
+
+	case EStdKeyTab:         KEY(0, 4);
+	case 'A':                KEY(1, 4);
+	case 'S':                KEY(2, 4);
+	case 'D':                KEY(3, 4);
+	case 'F':                KEY(4, 4);
+	case 'G':                KEY(5, 4);
+	case 'H':                KEY(6, 4);
+
+	case EStdKeySpace:       KEY(0, 5);
+	case EStdKeyComma:       KEY(1, 5);
+	case 'M':                KEY(2, 5);
+	case EStdKeyFullStop:    KEY(3, 5);
+	case EStdKeyLeftArrow:   KEY(4, 5);
+	case EStdKeyDownArrow:   KEY(5, 5);
+	case EStdKeyRightArrow:  KEY(6, 5);
+
+	case 'Z':                KEY(0, 6);
+	case 'X':                KEY(1, 6);
+	case EStdKeyMenu:        KEY(2, 6);
+	case 'C':                KEY(3, 6);
+	case 'V':                KEY(4, 6);
+	case 'B':                KEY(5, 6);
+	case 'N':                KEY(6, 6);
+
+	case EStdKeyLeftShift:   KEY(8, 0);
+	case EStdKeyRightShift:  KEY(8, 1);
+	case EStdKeyLeftCtrl:    KEY(8, 2);
+	case EStdKeyLeftFunc:    KEY(8, 3);
+	}
+
+	if (idx >= 0x800) {
+		if (value)
+			keyboardExtra |= (idx & 0xFF);
+		else
+			keyboardExtra &= ~(idx & 0xFF);
+	} else if (idx >= 0) {
+		if (value)
+			keyboardColumns[idx >> 8] |= (idx & 0xFF);
+		else
+			keyboardColumns[idx >> 8] &= ~(idx & 0xFF);
+	}
+}
+
 }

@@ -28,7 +28,7 @@ uint32_t Emulator::readReg8(uint32_t reg) {
 	} else if (reg == TC2CTRL) {
 		return tc2.config;
 	} else if (reg == PADR) {
-		return readKeyboard(kScan);
+		return readKeyboard();
 	} else if (reg == PBDR) {
 		return (portValues >> 16) & 0xFF;
 	} else if (reg == PCDR) {
@@ -562,4 +562,99 @@ void Emulator::diffInterrupts(uint16_t oldval, uint16_t newval) {
 	if (changes & 0x4000) log("INTCHG lcd=%d", newval & 0x4000);
 	if (changes & 0x8000) log("INTCHG spi=%d", newval & 0x8000);
 }
+
+
+uint32_t Emulator::readKeyboard() {
+	if (kScan & 8) {
+		// Select one keyboard
+		return keyboardColumns[kScan & 7];
+	} else if (kScan == 0) {
+		// Report all columns combined
+		uint8_t val = 0;
+		for (int i = 0; i < 8; i++)
+			val |= keyboardColumns[i];
+		return val;
+	} else {
+		return 0;
+	}
+}
+
+void Emulator::setKeyboardKey(EpocKey key, bool value) {
+	int idx = -1;
+#define KEY(column, bit) idx = (column << 8) | (1 << bit); break
+
+	switch ((int)key) {
+	case EStdKeyDictaphoneRecord: KEY(0, 6);
+	case '1':                     KEY(0, 5);
+	case '2':                     KEY(0, 4);
+	case '3':                     KEY(0, 3);
+	case '4':                     KEY(0, 2);
+	case '5':                     KEY(0, 1);
+	case '6':                     KEY(0, 0);
+
+	case EStdKeyDictaphonePlay:   KEY(1, 6);
+	case '7':                     KEY(1, 5);
+	case '8':                     KEY(1, 4);
+	case '9':                     KEY(1, 3);
+	case '0':                     KEY(1, 2);
+	case EStdKeyBackspace:        KEY(1, 1);
+	case EStdKeySingleQuote:      KEY(1, 0);
+
+	case EStdKeyEscape:           KEY(2, 6);
+	case 'Q':                     KEY(2, 5);
+	case 'W':                     KEY(2, 4);
+	case 'E':                     KEY(2, 3);
+	case 'R':                     KEY(2, 2);
+	case 'T':                     KEY(2, 1);
+	case 'Y':                     KEY(2, 0);
+
+	case EStdKeyMenu:             KEY(3, 6);
+	case 'U':                     KEY(3, 5);
+	case 'I':                     KEY(3, 4);
+	case 'O':                     KEY(3, 3);
+	case 'P':                     KEY(3, 2);
+	case 'L':                     KEY(3, 1);
+	case EStdKeyEnter:            KEY(3, 0);
+
+	case EStdKeyLeftCtrl:         KEY(4, 6);
+	case EStdKeyTab:              KEY(4, 5);
+	case 'A':                     KEY(4, 4);
+	case 'S':                     KEY(4, 3);
+	case 'D':                     KEY(4, 2);
+	case 'F':                     KEY(4, 1);
+	case 'G':                     KEY(4, 0);
+
+	case EStdKeyLeftFunc:         KEY(5, 6);
+	case 'H':                     KEY(5, 5);
+	case 'J':                     KEY(5, 4);
+	case 'K':                     KEY(5, 3);
+	case 'M':                     KEY(5, 2);
+	case EStdKeyFullStop:         KEY(5, 1);
+	case EStdKeyDownArrow:        KEY(5, 0);
+
+	case EStdKeyRightShift:       KEY(6, 6);
+	case 'Z':                     KEY(6, 5);
+	case 'X':                     KEY(6, 4);
+	case 'C':                     KEY(6, 3);
+	case 'V':                     KEY(6, 2);
+	case 'B':                     KEY(6, 1);
+	case 'N':                     KEY(6, 0);
+
+	case EStdKeyLeftShift:        KEY(7, 6);
+	case EStdKeyDictaphoneStop:   KEY(7, 5);
+	case EStdKeySpace:            KEY(7, 4);
+	case EStdKeyUpArrow:          KEY(7, 3);
+	case EStdKeyComma:            KEY(7, 2);
+	case EStdKeyLeftArrow:        KEY(7, 1);
+	case EStdKeyRightArrow:       KEY(7, 0);
+	}
+
+	if (idx >= 0) {
+		if (value)
+			keyboardColumns[idx >> 8] |= (idx & 0xFF);
+		else
+			keyboardColumns[idx >> 8] &= ~(idx & 0xFF);
+	}
+}
+
 }

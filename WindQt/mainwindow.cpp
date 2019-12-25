@@ -110,97 +110,53 @@ void MainWindow::updateScreen()
 }
 
 
-static int resolveKey(int key) {
+static EpocKey resolveKey(int key) {
     switch (key) {
-    case Qt::Key_6: return 0;
-    case Qt::Key_5: return 1;
-    case Qt::Key_4: return 2;
-    case Qt::Key_3: return 3;
-    case Qt::Key_2: return 4;
-    case Qt::Key_1: return 5;
-    // missing 6: F13/rec
-
-    case Qt::Key_Apostrophe: return 7;
-    case Qt::Key_Backspace: return 8;
-    case Qt::Key_0: return 9;
-    case Qt::Key_9: return 10;
-    case Qt::Key_8: return 11;
-    case Qt::Key_7: return 12;
-    // missing 13: F15/play
-
-    case Qt::Key_Y: return 14;
-    case Qt::Key_T: return 15;
-    case Qt::Key_R: return 16;
-    case Qt::Key_E: return 17;
-    case Qt::Key_W: return 18;
-    case Qt::Key_Q: return 19;
-    case Qt::Key_Escape: return 20;
-
-    case Qt::Key_Enter: return 21;
-    case Qt::Key_Return: return 21;
-    case Qt::Key_L: return 22;
-    case Qt::Key_P: return 23;
-    case Qt::Key_O: return 24;
-    case Qt::Key_I: return 25;
-    case Qt::Key_U: return 26;
-    case Qt::Key_Alt: return 27; // actually Menu
-
-    case Qt::Key_G: return 28;
-    case Qt::Key_F: return 29;
-    case Qt::Key_D: return 30;
-    case Qt::Key_S: return 31;
-    case Qt::Key_A: return 32;
-    case Qt::Key_Tab: return 33;
+	case Qt::Key_Apostrophe: return EStdKeySingleQuote;
+	case Qt::Key_Backspace: return EStdKeyBackspace;
+	case Qt::Key_Escape: return EStdKeyEscape;
+	case Qt::Key_Enter: return EStdKeyEnter;
+	case Qt::Key_Return: return EStdKeyEnter;
+	case Qt::Key_Alt: return EStdKeyMenu;
+	case Qt::Key_Tab: return EStdKeyTab;
 #ifdef Q_OS_MAC
-    case Qt::Key_Meta: return 34; // Control -> Control
+	case Qt::Key_Meta: return EStdKeyLeftCtrl;
 #else
-    case Qt::Key_Control: return 34; // Control -> Control
+	case Qt::Key_Control: return EStdKeyLeftCtrl;
 #endif
-
-    case Qt::Key_Down: return 35;
-    case Qt::Key_Period: return 36;
-    case Qt::Key_M: return 37;
-    case Qt::Key_K: return 38;
-    case Qt::Key_J: return 39;
-    case Qt::Key_H: return 40;
+	case Qt::Key_Down: return EStdKeyDownArrow;
+	case Qt::Key_Period: return EStdKeyFullStop;
 #ifdef Q_OS_MAC
-    case Qt::Key_Control: return 41; // Command -> Fn
+	case Qt::Key_Control: return EStdKeyLeftFunc;
 #else
-    case Qt::Key_Meta: return 41; // Super -> Fn
+	case Qt::Key_Meta: return EStdKeyLeftFunc;
 #endif
-
-    case Qt::Key_N: return 42;
-    case Qt::Key_B: return 43;
-    case Qt::Key_V: return 44;
-    case Qt::Key_C: return 45;
-    case Qt::Key_X: return 46;
-    case Qt::Key_Z: return 47;
-    case Qt::Key_Shift: return 48;
-
-    case Qt::Key_Right: return 49;
-    case Qt::Key_Left: return 50;
-    case Qt::Key_Comma: return 51;
-    case Qt::Key_Up: return 52;
-    case Qt::Key_Space: return 53;
-    // missing 54: F14/stop
-    // missing 55: another Shift
+	case Qt::Key_Shift: return EStdKeyLeftShift;
+	case Qt::Key_Right: return EStdKeyRightArrow;
+	case Qt::Key_Left: return EStdKeyLeftArrow;
+	case Qt::Key_Comma: return EStdKeyComma;
+	case Qt::Key_Up: return EStdKeyUpArrow;
+	case Qt::Key_Space: return EStdKeySpace;
     }
-    return -1;
+
+	if (key >= '0' && key <= '9') return (EpocKey)key;
+	if (key >= 'A' && key <= 'Z') return (EpocKey)key;
+	return EStdKeyNull;
 }
 
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    int k = resolveKey(event->key());
-    if (k >= 0)
-        emu->keyboardKeys[k] = true;
+	EpocKey k = resolveKey(event->key());
+	if (k != EStdKeyNull)
+		emu->setKeyboardKey(k, true);
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
-    int k = resolveKey(event->key());
-	if (k >= 0)
-        emu->keyboardKeys[k] = false;
+	EpocKey k = resolveKey(event->key());
+	if (k != EStdKeyNull)
+		emu->setKeyboardKey(k, false);
 }
 
 
