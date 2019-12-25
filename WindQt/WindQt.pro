@@ -25,10 +25,12 @@ QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.14
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+        pdascreenwindow.cpp
 
 HEADERS += \
-        mainwindow.h
+        mainwindow.h \
+        pdascreenwindow.h
 
 FORMS += \
         mainwindow.ui

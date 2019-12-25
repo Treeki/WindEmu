@@ -24,10 +24,12 @@ private:
 	uint32_t rtc = 0;
 	uint32_t rtcDiv = 0;
 	uint64_t lcdPalette = 0;
+	uint16_t lastSyncioRequest = 0;
 
 	uint32_t kScan = 0;
 	uint8_t keyboardColumns[7] = {0,0,0,0,0,0,0};
 	uint8_t keyboardExtra = 0;
+	int32_t touchX = 0, touchY = 0;
 
 	Timer tc1, tc2;
 	CLPS7600 pcCardController;
@@ -62,9 +64,15 @@ public:
 	void loadROM(uint8_t *buffer, size_t size) override;
 	void executeUntil(int64_t cycles) override;
 	int32_t getClockSpeed() const override { return CLOCK_SPEED; }
+	const char *getDeviceName() const override;
+	int getDigitiserWidth() const override;
+	int getDigitiserHeight() const override;
+	int getLCDOffsetX() const override;
+	int getLCDOffsetY() const override;
 	int getLCDWidth() const override;
 	int getLCDHeight() const override;
 	void readLCDIntoBuffer(uint8_t **lines) const override;
 	void setKeyboardKey(EpocKey key, bool value) override;
+	void updateTouchInput(int32_t x, int32_t y, bool down) override;
 };
 }

@@ -114,10 +114,16 @@ public:
 	virtual void loadROM(uint8_t *buffer, size_t size) = 0;
 	virtual void executeUntil(int64_t cycles) = 0;
 	virtual int32_t getClockSpeed() const = 0;
+	virtual const char *getDeviceName() const = 0;
+	virtual int getDigitiserWidth() const = 0;
+	virtual int getDigitiserHeight() const = 0;
+	virtual int getLCDOffsetX() const = 0;
+	virtual int getLCDOffsetY() const = 0;
 	virtual int getLCDWidth() const = 0;
 	virtual int getLCDHeight() const = 0;
 	virtual void readLCDIntoBuffer(uint8_t **lines) const = 0;
 	virtual void setKeyboardKey(EpocKey key, bool value) = 0;
+	virtual void updateTouchInput(int32_t x, int32_t y, bool down) = 0;
 
 	std::unordered_set<uint32_t> &breakpoints() { return _breakpoints; }
 	uint64_t currentCycles() const { return passedCycles; }

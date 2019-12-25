@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "../WindCore/emubase.h"
+#include "pdascreenwindow.h"
 
 namespace Ui {
 class MainWindow;
@@ -44,16 +45,13 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+	PDAScreenWindow pdaScreen;
 	EmuBase *emu;
     QTimer *timer;
     void updateScreen();
     void updateBreakpointsList();
     void updateMemory();
     void adjustMemoryAddress(int offset);
-
-protected:
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
 };
 
 #endif // MAINWINDOW_H

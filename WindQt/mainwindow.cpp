@@ -1,12 +1,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QTimer>
-#include <QKeyEvent>
 #include "../WindCore/decoder.h"
+#include "clps7111.h"
 
 MainWindow::MainWindow(EmuBase *emu, QWidget *parent) :
     QMainWindow(parent),
 	ui(new Ui::MainWindow),
+	pdaScreen(emu),
 	emu(emu)
 {
     ui->setupUi(this);
@@ -19,6 +20,8 @@ MainWindow::MainWindow(EmuBase *emu, QWidget *parent) :
     timer = new QTimer(this);
     timer->setInterval(1000/64);
     connect(timer, SIGNAL(timeout()), SLOT(execTimer()));
+
+	pdaScreen.show();
 
 	updateScreen();
 }
@@ -100,65 +103,8 @@ void MainWindow::updateScreen()
 	ui->codeLabel->setText(codeLines.join('\n'));
 
     // now, the actual screen
-	uint8_t *lines[1024];
-	QImage img(emu->getLCDWidth(), emu->getLCDHeight(), QImage::Format_Grayscale8);
-	for (int y = 0; y < img.height(); y++)
-		lines[y] = img.scanLine(y);
-	emu->readLCDIntoBuffer(lines);
-
-	ui->screen->setPixmap(QPixmap::fromImage(std::move(img)));
+	pdaScreen.updateScreen();
 }
-
-
-static EpocKey resolveKey(int key) {
-    switch (key) {
-	case Qt::Key_Apostrophe: return EStdKeySingleQuote;
-	case Qt::Key_Backspace: return EStdKeyBackspace;
-	case Qt::Key_Escape: return EStdKeyEscape;
-	case Qt::Key_Enter: return EStdKeyEnter;
-	case Qt::Key_Return: return EStdKeyEnter;
-	case Qt::Key_Alt: return EStdKeyMenu;
-	case Qt::Key_Tab: return EStdKeyTab;
-#ifdef Q_OS_MAC
-	case Qt::Key_Meta: return EStdKeyLeftCtrl;
-#else
-	case Qt::Key_Control: return EStdKeyLeftCtrl;
-#endif
-	case Qt::Key_Down: return EStdKeyDownArrow;
-	case Qt::Key_Period: return EStdKeyFullStop;
-#ifdef Q_OS_MAC
-	case Qt::Key_Control: return EStdKeyLeftFunc;
-#else
-	case Qt::Key_Meta: return EStdKeyLeftFunc;
-#endif
-	case Qt::Key_Shift: return EStdKeyLeftShift;
-	case Qt::Key_Right: return EStdKeyRightArrow;
-	case Qt::Key_Left: return EStdKeyLeftArrow;
-	case Qt::Key_Comma: return EStdKeyComma;
-	case Qt::Key_Up: return EStdKeyUpArrow;
-	case Qt::Key_Space: return EStdKeySpace;
-    }
-
-	if (key >= '0' && key <= '9') return (EpocKey)key;
-	if (key >= 'A' && key <= 'Z') return (EpocKey)key;
-	return EStdKeyNull;
-}
-
-
-void MainWindow::keyPressEvent(QKeyEvent *event)
-{
-	EpocKey k = resolveKey(event->key());
-	if (k != EStdKeyNull)
-		emu->setKeyboardKey(k, true);
-}
-
-void MainWindow::keyReleaseEvent(QKeyEvent *event)
-{
-	EpocKey k = resolveKey(event->key());
-	if (k != EStdKeyNull)
-		emu->setKeyboardKey(k, false);
-}
-
 
 
 

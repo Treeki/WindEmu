@@ -49,6 +49,7 @@ uint32_t Emulator::readReg32(uint32_t reg) {
 		return flg;
 	} else if (reg == SYSFLG1) {
 		uint32_t flg = sysFlg1;
+		flg |= 2; // external power present
 		flg |= (rtcDiv << 16);
 		// maybe set more stuff?
 		return flg;
@@ -64,6 +65,21 @@ uint32_t Emulator::readReg32(uint32_t reg) {
 		return tc2.value;
 	} else if (reg == RTCDR) {
 		return rtc;
+	} else if (reg == SYNCIO) {
+		switch (lastSyncioRequest & 0xFF) {
+		case 0xC1: // DigitiserX
+			return (touchX * 8) + 305;
+		case 0x81: // DigitiserY
+			return (touchY * 13.53) + 680;
+		case 0x91: // MainBattery
+			return 3000;
+		case 0xD1: // BackupBattery
+			return 3100;
+		case 0xA1: // Reference
+			return 1000;
+		}
+		log("SYNCIO read unknown:: req=%08x", lastSyncioRequest);
+		return 0xFFFFFFFF;
 	} else if (reg == PALLSW) {
 		return lcdPalette & 0xFFFFFFFF;
 	} else if (reg == PALMSW) {
@@ -149,6 +165,8 @@ void Emulator::writeReg32(uint32_t reg, uint32_t value) {
 		tc2.load(value);
 	} else if (reg == RTCDR) {
 		rtc = value;
+	} else if (reg == SYNCIO) {
+		lastSyncioRequest = value & 0xFFFF;
 	} else if (reg == PALLSW) {
 		lcdPalette &= 0xFFFFFFFF00000000;
 		lcdPalette |= value;
@@ -337,7 +355,7 @@ const char *Emulator::identifyObjectCon(uint32_t ptr) {
 	if (ptr == readVirtualDebug(0x800008AC, V32).value()) return "library";
 //	if (ptr == readVirtualDebug(0x800008B0, V32).value()) return "unk8B0"; // name always null
 //	if (ptr == readVirtualDebug(0x800008B4, V32).value()) return "unk8B4"; // name always null
-	return "???";
+	return nullptr;
 }
 
 void Emulator::fetchStr(uint32_t str, char *buf) {
@@ -405,15 +423,46 @@ void Emulator::debugPC(uint32_t pc) {
 		log("DPlatChunkHw MAPPING: v:%08x p:%08x size:%08x arg:%08x",
 			virtAddr, physAddr, regionSize, a);
 	}
+
+	if (pc == 0x16198) {
+		uint32_t rawEvent = getGPR(0);
+		uint32_t evtType = readVirtualDebug(rawEvent, V32).value_or(0);
+		uint32_t evtTick = readVirtualDebug(rawEvent + 4, V32).value_or(0);
+		uint32_t evtParamA = readVirtualDebug(rawEvent + 8, V32).value_or(0);
+		uint32_t evtParamB = readVirtualDebug(rawEvent + 0xC, V32).value_or(0);
+		const char *n = "???";
+		switch (evtType) {
+		case 0: n = "ENone"; break;
+		case 1: n = "EPointerMove"; break;
+		case 2: n = "EPointerSwitchOn"; break;
+		case 3: n = "EKeyDown"; break;
+		case 4: n = "EKeyUp"; break;
+		case 5: n = "ERedraw"; break;
+		case 6: n = "ESwitchOn"; break;
+		case 7: n = "EActive"; break;
+		case 8: n = "EInactive"; break;
+		case 9: n = "EUpdateModifiers"; break;
+		case 10: n = "EButton1Down"; break;
+		case 11: n = "EButton1Up"; break;
+		case 12: n = "EButton2Down"; break;
+		case 13: n = "EButton2Up"; break;
+		case 14: n = "EButton3Down"; break;
+		case 15: n = "EButton3Up"; break;
+		case 16: n = "ESwitchOff"; break;
+		}
+		log("EVENT %s: tick=%d params=%08x,%08x", n, evtTick, evtParamA, evtParamB);
+	}
 }
 
 
-int Emulator::getLCDWidth() const {
-	return 320;
-}
-int Emulator::getLCDHeight() const {
-	return 200;
-}
+const char *Emulator::getDeviceName() const { return "Osaris"; }
+int Emulator::getDigitiserWidth()  const { return 440; }
+int Emulator::getDigitiserHeight() const { return 200; }
+int Emulator::getLCDOffsetX()      const { return 60; }
+int Emulator::getLCDOffsetY()      const { return 0; }
+int Emulator::getLCDWidth()        const { return 320; }
+int Emulator::getLCDHeight()       const { return 200; }
+
 void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
 	if (lcdAddress == 0xC0000000) {
 		int width = 320, height = 200;
@@ -566,6 +615,16 @@ void Emulator::setKeyboardKey(EpocKey key, bool value) {
 		else
 			keyboardColumns[idx >> 8] &= ~(idx & 0xFF);
 	}
+}
+
+
+void Emulator::updateTouchInput(int32_t x, int32_t y, bool down) {
+	pendingInterrupts &= ~(1 << EINT2);
+	if (down)
+		pendingInterrupts |= (1 << EINT2);
+	log("Touch: x=%d y=%d down=%s", x, y, down ? "yes" : "no");
+	touchX = x;
+	touchY = y;
 }
 
 }

@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 
 	QString romFile;
 	if (args.length() > 1)
-		romFile = args.first();
+		romFile = args.last();
 	else
 		romFile = QFileDialog::getOpenFileName(nullptr, "Select a ROM");
 	if (romFile.isNull()) return 0;

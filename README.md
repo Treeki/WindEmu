@@ -21,7 +21,7 @@ Oregon Scientific Osaris (EPOC R4) features:
 
 - ✅ LCD: implemented
 - ✅ Keyboard: mostly implemented (key mappings wrong)
-- ❌ Touch panel: not implemented
+- ✅ Touch panel: implemented
 - ❌ Audio: not implemented
 - ❌ Serial/UART support: stubbed out
 - ❌ PCMCIA: mostly stubbed out

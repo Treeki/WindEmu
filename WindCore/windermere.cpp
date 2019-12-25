@@ -478,12 +478,14 @@ void Emulator::debugPC(uint32_t pc) {
 }
 
 
-int Emulator::getLCDWidth() const {
-	return 640;
-}
-int Emulator::getLCDHeight() const {
-	return 240;
-}
+const char *Emulator::getDeviceName() const { return "Series 5mx"; }
+int Emulator::getDigitiserWidth()  const { return 695; }
+int Emulator::getDigitiserHeight() const { return 280; }
+int Emulator::getLCDOffsetX()      const { return 45; }
+int Emulator::getLCDOffsetY()      const { return 5; }
+int Emulator::getLCDWidth()        const { return 640; }
+int Emulator::getLCDHeight()       const { return 240; }
+
 void Emulator::readLCDIntoBuffer(uint8_t **lines) const {
 	if ((lcdAddress >> 24) == 0xC0) {
 		const uint8_t *lcdBuf = &MemoryBlockC0[lcdAddress & MemoryBlockMask];
@@ -655,6 +657,9 @@ void Emulator::setKeyboardKey(EpocKey key, bool value) {
 		else
 			keyboardColumns[idx >> 8] &= ~(idx & 0xFF);
 	}
+}
+
+void Emulator::updateTouchInput(int32_t x, int32_t y, bool down) {
 }
 
 }
