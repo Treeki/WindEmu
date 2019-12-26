@@ -13,8 +13,10 @@ MainWindow::MainWindow(EmuBase *emu, QWidget *parent) :
     ui->setupUi(this);
 	ui->logView->setMaximumBlockCount(1000);
 
+	elapsedTimer.start();
 	emu->setLogger([&](const char *str) {
-		ui->logView->appendPlainText(str);
+		QString fullStr = QStringLiteral("[%1] %2").arg(elapsedTimer.elapsed()).arg(str);
+		ui->logView->appendPlainText(fullStr);
 	});
 
     timer = new QTimer(this);

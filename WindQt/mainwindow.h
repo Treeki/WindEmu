@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QElapsedTimer>
 #include "../WindCore/emubase.h"
 #include "pdascreenwindow.h"
 
@@ -44,6 +45,7 @@ private slots:
     void on_writeDwordButton_clicked();
 
 private:
+	QElapsedTimer elapsedTimer;
     Ui::MainWindow *ui;
 	PDAScreenWindow pdaScreen;
 	EmuBase *emu;
