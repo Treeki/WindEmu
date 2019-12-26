@@ -1,6 +1,6 @@
 #!/bin/sh
 
-FLAGS="-O3 --profiling -g -s WASM_OBJECT_FILES=0 -std=c++17"
+FLAGS="-O3 -s WASM_OBJECT_FILES=0 -std=c++17"
 
 mkdir -p obj
 for i in arm710 emubase etna windermere; do emcc -c $FLAGS -o obj/$i.o ../WindCore/$i.cpp; done

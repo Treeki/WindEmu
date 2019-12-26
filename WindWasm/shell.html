@@ -16,7 +16,7 @@
         height: 305px;
         }
       img.overlay {
-        width: 695px;
+        width: 100%;
         position: absolute;
         top: 0;
         left: 0;
@@ -26,6 +26,7 @@
       canvas.emscripten {
         border: 0px none;
         background-color: black;
+        width: 100%;
         }
 
       .spinner {
@@ -69,13 +70,13 @@
     <div class="emscripten">
       <progress value="0" max="100" id="progress" hidden=1></progress>  
     </div>
-    <div class="emscripten_border">
+    <div class="emscripten_border" id='canvasContainer'>
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
       <img src='cover.svg' class='overlay'>
     </div>
     <hr/>
     <div class="emscripten">
-      <input type="button" value="Fullscreen" onclick="Module.requestFullscreen(false, false)">
+      <input type="button" value="Fullscreen" onclick="doFullscreen()">
     </div>
     
     <hr/>
@@ -85,6 +86,11 @@
       var statusElement = document.getElementById('status');
       var progressElement = document.getElementById('progress');
       var spinnerElement = document.getElementById('spinner');
+
+      function doFullscreen() {
+        // we need to do this ourselves so we get the cover as well
+        document.getElementById('canvasContainer').requestFullscreen();
+      }
 
       var Module = {
         preRun: [],
