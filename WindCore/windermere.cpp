@@ -115,9 +115,9 @@ void Emulator::writeReg8(uint32_t reg, uint8_t value) {
 	} else if ((reg & 0xF00) == 0x700) {
 		uart2.writeReg8(reg & 0xFF, value);
 	} else if (reg == TC1CTRL) {
-		tc1.config = value;
+		tc1.setConfig(value);
 	} else if (reg == TC2CTRL) {
-		tc2.config = value;
+		tc2.setConfig(value);
 	} else if (reg == PADR) {
 		uint32_t oldPorts = portValues;
 		portValues &= 0x00FFFFFF;
@@ -364,6 +364,8 @@ void Emulator::configure() {
 	tc2.clockSpeed = CLOCK_SPEED;
 
 	nextTickAt = TICK_INTERVAL;
+	tc1.nextTickAt = tc1.tickInterval();
+	tc2.nextTickAt = tc2.tickInterval();
 	rtc = getRTC();
 
 	reset();
@@ -413,22 +415,25 @@ void Emulator::executeUntil(int64_t cycles) {
 		// what's running?
 		if (halted) {
 			// keep the clock moving
-			passedCycles++;
+			// when does the next earliest thing happen?
+			// this stops us from spinning needlessly
+			int64_t nextEvent = nextTickAt;
+			if (tc1.nextTickAt < nextEvent) nextEvent = tc1.nextTickAt;
+			if (tc2.nextTickAt < nextEvent) nextEvent = tc2.nextTickAt;
+			if (cycles < nextEvent) nextEvent = cycles;
+			passedCycles = nextEvent;
 		} else {
 			if (auto v = virtToPhys(getGPR(15) - 0xC); v.has_value() && instructionReady())
 				debugPC(v.value());
 			passedCycles += tick();
 
+#ifndef __EMSCRIPTEN__
 			uint32_t new_pc = getGPR(15) - 0xC;
 			if (_breakpoints.find(new_pc) != _breakpoints.end()) {
 				log("⚠️ Breakpoint triggered at %08x!", new_pc);
 				return;
 			}
-			if (new_pc >= 0x80000000 && new_pc <= 0x90000000) {
-				log("BAD PC %08x!!", new_pc);
-				logPcHistory();
-				return;
-			}
+#endif
 		}
 	}
 }

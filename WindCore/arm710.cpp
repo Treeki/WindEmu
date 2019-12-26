@@ -664,15 +664,19 @@ uint32_t ARM710::execCP15RegisterTransfer(uint32_t CPOpc, bool L, uint32_t CRn, 
 		case 5:
 			if (isTVersion)
 				cp15_faultStatus = what;
+#ifdef ARM710T_TLB
 			else
 				flushTlb();
+#endif
 			break;
 		case 6:
 			if (isTVersion)
 				cp15_faultAddress = what;
+#ifdef ARM710T_TLB
 			else
 				flushTlb(what);
 			break;
+#endif
 		case 7:
 #ifdef ARM710T_CACHE
 			clearCache();
@@ -680,12 +684,14 @@ uint32_t ARM710::execCP15RegisterTransfer(uint32_t CPOpc, bool L, uint32_t CRn, 
 #endif
 			break;
 		case 8: {
+#ifdef ARM710T_TLB
 			if (isTVersion) {
 				if (CPOpc == 1)
 					flushTlb(what);
 				else
 					flushTlb();
 			}
+#endif
 			break;
 		}
 		}
@@ -900,6 +906,7 @@ ARM710::MMUFault ARM710::writeVirtual(uint32_t value, uint32_t virtAddr, ValueSi
 
 
 // TLB
+#ifdef ARM710T_TLB
 void ARM710::flushTlb() {
 	for (TlbEntry &e : tlb)
 		e = {0, 0, 0, 0};
@@ -912,21 +919,28 @@ void ARM710::flushTlb(uint32_t virtAddr) {
 		}
 	}
 }
+#endif
 
 ARM710::TlbEntry *ARM710::_allocateTlbEntry(uint32_t addrMask, uint32_t addr) {
+#ifdef ARM710T_TLB
 	TlbEntry *entry = &tlb[nextTlbIndex];
+	nextTlbIndex = (nextTlbIndex + 1) % TlbSize;
+#else
+	TlbEntry *entry = &singleTlbEntry;
+#endif
 	entry->addrMask = addrMask;
 	entry->addr = addr & addrMask;
-	nextTlbIndex = (nextTlbIndex + 1) % TlbSize;
 	return entry;
 }
 
 variant<ARM710::TlbEntry *, ARM710::MMUFault> ARM710::translateAddressUsingTlb(uint32_t virtAddr, TlbEntry *useMe) {
+#ifdef ARM710T_TLB
 	// first things first, do we have a matching entry in the TLB?
 	for (TlbEntry &e : tlb) {
 		if (e.addrMask && (virtAddr & e.addrMask) == e.addr)
 			return &e;
 	}
+#endif
 
 	// no, so do a page table walk
 	TlbEntry *entry;

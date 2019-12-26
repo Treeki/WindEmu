@@ -10,7 +10,7 @@ struct Timer {
 		PERIODIC = 1<<6,
 		ENABLED = 1<<7
 	};
-    int64_t lastTicked;
+    int64_t nextTickAt;
 	uint8_t config;
 	uint32_t interval;
 	int32_t value;
@@ -23,9 +23,14 @@ struct Timer {
 		interval = lval;
 		value = lval;
 	}
+	void setConfig(uint8_t cval) {
+		nextTickAt -= tickInterval();
+		config = cval;
+		nextTickAt += tickInterval();
+	}
     bool tick(int64_t cycles) {
-		if (cycles >= (lastTicked + tickInterval())) {
-			lastTicked += tickInterval();
+		if (cycles >= nextTickAt) {
+			nextTickAt += tickInterval();
 
 			if (config & ENABLED) {
 				--value;

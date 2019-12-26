@@ -120,15 +120,8 @@ int main(int argc, char **argv) {
 		printf("SDL_SetVideoMode failed: %s\n", SDL_GetError());
 		return 1;
 	}
-	// window = SDL_CreateWindow(
-	// 	"WindEmu",
-	// 	SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-	// 	emu->getDigitiserWidth(), emu->getDigitiserHeight(),
-	// 	0);
-	// if (window == NULL) {
-	// 	printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
-	// 	return 1;
-	// }
+
+	EM_ASM("SDL.defaults.copyOnLock = false; SDL.defaults.discardOnLock = true; SDL.defaults.opaqueFrontBuffer = false;");
 
 	emscripten_set_main_loop(&emuEventLoop, 64, 1);
 

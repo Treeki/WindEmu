@@ -147,12 +147,14 @@ void Emulator::writeReg8(uint32_t reg, uint8_t value) {
 void Emulator::writeReg32(uint32_t reg, uint32_t value) {
 	if (reg == SYSCON1) {
 		kScan = value & 0xF;
-		tc1.config = Timer::ENABLED; // always on with PS-7111!
-		if (value & 0x10) tc1.config |= Timer::PERIODIC;
-		if (value & 0x20) tc1.config |= Timer::MODE_512KHZ;
-		tc2.config = Timer::ENABLED;
-		if (value & 0x40) tc2.config |= Timer::PERIODIC;
-		if (value & 0x80) tc2.config |= Timer::MODE_512KHZ;
+		uint8_t tc1cfg = Timer::ENABLED; // always on with PS-7111!
+		if (value & 0x10) tc1cfg |= Timer::PERIODIC;
+		if (value & 0x20) tc1cfg |= Timer::MODE_512KHZ;
+		uint8_t tc2cfg = Timer::ENABLED;
+		if (value & 0x40) tc2cfg |= Timer::PERIODIC;
+		if (value & 0x80) tc2cfg |= Timer::MODE_512KHZ;
+		tc1.setConfig(tc1cfg);
+		tc2.setConfig(tc2cfg);
 	} else if (reg == INTMR1) {
 		interruptMask &= 0xFFFF0000;;
 		interruptMask |= (value & 0xFFFF);
@@ -277,6 +279,8 @@ void Emulator::configure() {
 	tc2.clockSpeed = CLOCK_SPEED;
 
 	nextTickAt = TICK_INTERVAL;
+	tc1.nextTickAt = tc1.tickInterval();
+	tc2.nextTickAt = tc2.tickInterval();
 	rtc = getRTC();
 
 	reset();

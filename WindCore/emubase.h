@@ -103,7 +103,9 @@ enum EpocKey {
 class EmuBase : public ARM710
 {
 protected:
+#ifndef __EMSCRIPTEN__
 	std::unordered_set<uint32_t> _breakpoints;
+#endif
 	int64_t passedCycles = 0;
 	int64_t nextTickAt = 0;
 	uint8_t readKeyboard(int kScan);
@@ -127,7 +129,9 @@ public:
 	virtual void setKeyboardKey(EpocKey key, bool value) = 0;
 	virtual void updateTouchInput(int32_t x, int32_t y, bool down) = 0;
 
+#ifndef __EMSCRIPTEN__
 	std::unordered_set<uint32_t> &breakpoints() { return _breakpoints; }
+#endif
 	uint64_t currentCycles() const { return passedCycles; }
 };
 

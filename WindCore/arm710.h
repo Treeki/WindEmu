@@ -18,6 +18,7 @@ using namespace std;
 
 // Speedhacks:
 //#define ARM710T_CACHE
+//#define ARM710T_TLB
 
 typedef optional<uint32_t> MaybeU32;
 
@@ -87,7 +88,9 @@ public:
 #ifdef ARM710T_CACHE
 		clearCache();
 #endif
+#ifdef ARM710T_TLB
 		flushTlb();
+#endif
 	}
 
 	void setProcessorID(uint32_t v) { cp15_id = v; }
@@ -239,16 +242,20 @@ private:
 		return (MMUFault)(baseFault | (isPage ? 2 : 0) | (domain << 4) | ((uint64_t)virtAddr << 32));
 	}
 
-	enum { TlbSize = 64 };
 	struct TlbEntry { uint32_t addrMask, addr, lv1Entry, lv2Entry; };
+#ifdef ARM710T_TLB
+	enum { TlbSize = 64 };
 	TlbEntry tlb[TlbSize];
 	int nextTlbIndex = 0;
 
 	void flushTlb();
 	void flushTlb(uint32_t virtAddr);
-	variant<TlbEntry *, MMUFault> translateAddressUsingTlb(uint32_t virtAddr, TlbEntry *useMe=nullptr);
-	TlbEntry *_allocateTlbEntry(uint32_t addrMask, uint32_t addr);
+#else
+	TlbEntry singleTlbEntry;
+#endif	
 
+	TlbEntry *_allocateTlbEntry(uint32_t addrMask, uint32_t addr);
+	variant<TlbEntry *, MMUFault> translateAddressUsingTlb(uint32_t virtAddr, TlbEntry *useMe=nullptr);
 	static uint32_t physAddrFromTlbEntry(TlbEntry *tlbEntry, uint32_t virtAddr);
 	MMUFault checkAccessPermissions(TlbEntry *entry, uint32_t virtAddr, bool isWrite) const;
 
