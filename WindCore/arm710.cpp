@@ -365,6 +365,7 @@ uint32_t ARM710::execDataProcessing(bool I, uint32_t Opcode, bool S, uint32_t Rn
 		if (Rd == 15) {
 			// Writing to PC
 			// Special things occur here!
+			GPRs[Rd] &= ~3; // TODO is this really necessary??
 			prefetchCount = 0;
 			if (S && isPrivileged()) {
 				// We SHOULD be privileged
